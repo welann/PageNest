@@ -1,0 +1,18 @@
+name = "pagenest"
+compatibility_date = "2026-03-09"
+pages_build_output_dir = "dist"
+
+[vars]
+APP_ENV = "development"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "pagenest"
+database_id = "REPLACE_WITH_D1_DATABASE_ID"
+migrations_dir = "db/migrations"
+
+[[r2_buckets]]
+binding = "LIBRARY_BUCKET"
+bucket_name = "pagenest-library"
+preview_bucket_name = "pagenest-library-preview"
+

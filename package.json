@@ -1,0 +1,31 @@
+{
+  "name": "pagenest",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "npm run check && vite build",
+    "preview": "vite preview",
+    "cf:dev": "npm run build && wrangler pages dev dist",
+    "cf:deploy": "npm run build && wrangler pages deploy dist",
+    "check": "tsc -p tsconfig.app.json --noEmit && tsc -p tsconfig.node.json --noEmit",
+    "db:migrate:local": "wrangler d1 migrations apply pagenest --local"
+  },
+  "dependencies": {
+    "drizzle-orm": "0.45.1",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "react-router-dom": "7.13.1"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "4.20260307.1",
+    "@types/node": "25.3.5",
+    "@types/react": "19.2.14",
+    "@types/react-dom": "19.2.3",
+    "@vitejs/plugin-react": "5.1.4",
+    "typescript": "5.9.3",
+    "vite": "7.3.1",
+    "wrangler": "4.71.0"
+  }
+}
