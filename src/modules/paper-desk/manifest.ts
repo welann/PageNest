@@ -1,4 +1,4 @@
-import type { ModuleManifest } from "@modules/contracts";
+import type { ModuleManifest } from "../contracts";
 
 export const paperDeskManifest: ModuleManifest = {
   slug: "paper-desk",
@@ -11,4 +11,3 @@ export const paperDeskManifest: ModuleManifest = {
   accent: "#53786A",
   keywords: ["paper", "research", "pdf", "summary", "notes"]
 };
-

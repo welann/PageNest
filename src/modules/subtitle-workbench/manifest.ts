@@ -1,4 +1,4 @@
-import type { ModuleManifest } from "@modules/contracts";
+import type { ModuleManifest } from "../contracts";
 
 export const subtitleWorkbenchManifest: ModuleManifest = {
   slug: "subtitle-workbench",
@@ -11,4 +11,3 @@ export const subtitleWorkbenchManifest: ModuleManifest = {
   accent: "#4F5E92",
   keywords: ["subtitle", "translation", "timeline", "media"]
 };
-

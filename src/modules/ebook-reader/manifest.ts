@@ -1,4 +1,4 @@
-import type { ModuleManifest } from "@modules/contracts";
+import type { ModuleManifest } from "../contracts";
 
 export const ebookReaderManifest: ModuleManifest = {
   slug: "ebook-reader",
@@ -11,4 +11,3 @@ export const ebookReaderManifest: ModuleManifest = {
   accent: "#8A5B2F",
   keywords: ["ebook", "reader", "epub", "pdf", "highlight"]
 };
-

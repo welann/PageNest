@@ -34,6 +34,36 @@ db/
 5. Start the UI locally: `npm run dev`
 6. Start the full Cloudflare preview when needed: `npm run cf:dev`
 
+## Deploy to Cloudflare Pages
+
+This repository is already structured for Cloudflare Pages:
+
+- static assets are built into `dist`
+- API endpoints live in `functions/`
+- D1 is bound as `DB`
+- R2 is bound as `LIBRARY_BUCKET`
+
+Recommended first production deployment flow:
+
+1. Log in to Cloudflare: `npx wrangler login`
+2. Create the Pages project once: `npx wrangler pages project create pagenest --production-branch main`
+3. Create the D1 database: `npx wrangler d1 create pagenest`
+4. Copy the returned `database_id` into `wrangler.toml`
+5. Create the R2 buckets:
+   - `npx wrangler r2 bucket create pagenest-library`
+   - `npx wrangler r2 bucket create pagenest-library-preview`
+6. Apply remote migrations: `npx wrangler d1 migrations apply pagenest --remote`
+7. Build and deploy:
+   - `npm run build`
+   - `npx wrangler pages deploy dist --project-name pagenest`
+
+Notes:
+
+- The current `wrangler.toml` is the source of truth for Pages configuration because it includes `pages_build_output_dir`.
+- `APP_ENV` is currently set to `development`; that does not block deployment, but production responses will report that value until you override it for preview/production.
+- The `public/_redirects` file rewrites client-side routes back to `index.html`, so refreshing routes like `/m/ebook-reader` will keep working on Pages.
+- After deployment, verify `/api/health` to confirm that D1 and R2 bindings are attached correctly.
+
 ## Core design rules
 
 - Module metadata lives in code

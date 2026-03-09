@@ -1,10 +1,9 @@
-import { ebookReaderManifest } from "@modules/ebook-reader/manifest";
-import { paperDeskManifest } from "@modules/paper-desk/manifest";
-import { subtitleWorkbenchManifest } from "@modules/subtitle-workbench/manifest";
+import { ebookReaderManifest } from "./ebook-reader/manifest";
+import { paperDeskManifest } from "./paper-desk/manifest";
+import { subtitleWorkbenchManifest } from "./subtitle-workbench/manifest";
 
 export const moduleCatalog = [
   ebookReaderManifest,
   paperDeskManifest,
   subtitleWorkbenchManifest
 ] as const;
-
