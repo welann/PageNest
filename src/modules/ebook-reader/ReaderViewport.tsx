@@ -1,5 +1,6 @@
-import { useEffect, useEffectEvent, useRef, useState } from "react";
+import { type ReactNode, useEffect, useEffectEvent, useRef, useState } from "react";
 
+import { Button } from "@components/ui/button";
 import {
   collectUnknownWords,
   evaluateWord,
@@ -20,6 +21,7 @@ interface ReaderViewportProps {
     locator: string;
     progressPercent: number;
   }) => void | Promise<void>;
+  toolbarSupplement?: ReactNode;
   onVisibleWordsChange: (words: UnknownWordAggregate[]) => void;
   onWordSelect: (lemma: string, surface: string) => void;
 }
@@ -550,6 +552,7 @@ export function ReaderViewport({
   book,
   lookup,
   onProgressChange,
+  toolbarSupplement,
   onVisibleWordsChange,
   onWordSelect
 }: ReaderViewportProps) {
@@ -1028,63 +1031,50 @@ export function ReaderViewport({
 
   return (
     <div className={styles.readerViewport}>
-      <div className={styles.readerToolbar}>
-        <div>
-          <strong>{book.title}</strong>
-          <p>
-            {book.author} · {pageLabel}
+      <div className={styles.readerTopBar}>
+        <div className={styles.readerMeta}>
+          <p className={styles.readerMetaLabel}>
+            {book.author || "Unknown author"} · {book.language.toUpperCase()} · {book.format}
           </p>
+          <strong>{book.title}</strong>
+          <p>{pageLabel}</p>
         </div>
         <div className={styles.readerToolbarMeta}>
+          {toolbarSupplement}
           <div className={styles.fontSizeControls}>
-            <button
-              className="button"
+            <Button
+              className="rounded-[0.65rem]"
               disabled={status !== "ready" || fontScale <= MIN_FONT_SCALE}
               onClick={handleDecreaseFont}
+              size="sm"
               type="button"
+              variant="outline"
             >
               A-
-            </button>
+            </Button>
             <span>{fontScale}%</span>
-            <button
-              className="button"
+            <Button
+              className="rounded-[0.65rem]"
               disabled={status !== "ready" || fontScale >= MAX_FONT_SCALE}
               onClick={handleIncreaseFont}
+              size="sm"
               type="button"
+              variant="outline"
             >
               A+
-            </button>
-            <button
-              className="button"
+            </Button>
+            <Button
+              className="rounded-[0.65rem]"
               disabled={status !== "ready" || fontScale === DEFAULT_FONT_SCALE}
               onClick={handleResetFont}
+              size="sm"
               type="button"
+              variant="outline"
             >
               Reset
-            </button>
+            </Button>
           </div>
-          {isReflowing ? <span>Reflowing…</span> : null}
-          <span>{progressLabel}</span>
-          <button
-            className="button"
-            disabled={status !== "ready"}
-            onClick={() => {
-              void handlePrevPage();
-            }}
-            type="button"
-          >
-            Previous
-          </button>
-          <button
-            className="button button-primary"
-            disabled={status !== "ready"}
-            onClick={() => {
-              void handleNextPage();
-            }}
-            type="button"
-          >
-            Next
-          </button>
+          <span>{isReflowing ? "Reflowing..." : progressLabel}</span>
         </div>
       </div>
 
@@ -1095,15 +1085,46 @@ export function ReaderViewport({
         </div>
       ) : null}
 
-      <div className={styles.readerFrame}>
-        <div
-          aria-label={`${book.title} viewport`}
-          className={styles.readerMount}
-          ref={containerRef}
-        />
-        {status === "loading" ? (
-          <div className={styles.readerLoading}>Loading paginated EPUB…</div>
-        ) : null}
+      <div className={styles.readerCard}>
+        <div className={styles.readerFrame}>
+          <div
+            aria-label={`${book.title} viewport`}
+            className={styles.readerMount}
+            ref={containerRef}
+          />
+          {status === "loading" ? (
+            <div className={styles.readerLoading}>Loading paginated EPUB...</div>
+          ) : null}
+        </div>
+      </div>
+
+      <div className={styles.pageBar}>
+        <span>{`阅读进度 ${progressLabel}${isReflowing ? " · 正在重新排版" : ""}`}</span>
+        <div className={styles.pageControls}>
+          <Button
+            className="rounded-[0.55rem]"
+            disabled={status !== "ready"}
+            onClick={() => {
+              void handlePrevPage();
+            }}
+            size="sm"
+            type="button"
+            variant="outline"
+          >
+            上一页
+          </Button>
+          <Button
+            className="rounded-[0.55rem] bg-[#111215] text-white hover:bg-[#20242c]"
+            disabled={status !== "ready"}
+            onClick={() => {
+              void handleNextPage();
+            }}
+            size="sm"
+            type="button"
+          >
+            下一页
+          </Button>
+        </div>
       </div>
     </div>
   );

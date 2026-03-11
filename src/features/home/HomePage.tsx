@@ -1,26 +1,108 @@
-import type { CSSProperties } from "react";
 import { useDeferredValue, useMemo, useState } from "react";
+import {
+  ArrowRight,
+  BookOpenText,
+  Database,
+  HardDriveUpload,
+  Search,
+  Sparkles,
+  Wrench
+} from "lucide-react";
 import { Link } from "react-router-dom";
 
-import { Pill } from "@components/ui/Pill";
+import { Badge } from "@components/ui/badge";
+import { Button } from "@components/ui/button";
+import { Input } from "@components/ui/input";
 import { moduleCatalog } from "@modules/catalog";
+import type { ModuleCategory } from "@modules/contracts";
 import { useHomeDashboard } from "@features/home/useHomeDashboard";
 import { formatRelativeTime } from "@shared/utils/format";
+import {
+  getModuleCategoryCopy,
+  getModuleIcon,
+  getModuleStatusCopy,
+  plannedWorkspaceTracks
+} from "@shared/ui/modulePresentation";
+
+type ToolFilter = "all" | ModuleCategory;
+
+const toolFilters: Array<{ label: string; value: ToolFilter }> = [
+  { label: "All", value: "all" },
+  { label: "Read", value: "reader" },
+  { label: "Research", value: "research" },
+  { label: "Media", value: "media" }
+];
+
+function HomeHeader({
+  snapshotLabel
+}: {
+  snapshotLabel: string;
+}) {
+  return (
+    <section className="overflow-hidden rounded-[1.4rem] border border-[#e5e3de] bg-[linear-gradient(180deg,#ffffff_0%,#f8fafd_100%)] p-5 shadow-[0_12px_32px_rgba(148,163,184,0.14)] sm:p-6">
+      <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+        <div className="min-w-0 space-y-2.5">
+          <p className="text-[0.68rem] font-semibold uppercase tracking-[0.22em] text-[#7b7d80]">
+            Workspace / 工坊主页（当前）
+          </p>
+          <div className="space-y-2">
+            <h1 className="font-serif text-[2.2rem] leading-[0.95] tracking-[-0.04em] text-[#1f2e40] sm:text-[3.1rem]">
+              Private Research Desk
+            </h1>
+            <p className="max-w-3xl text-sm leading-7 text-[#6f747b] sm:text-base">
+              统一接入你构建的 AI 工具，在同一工作台里完成研究、执行与复盘。
+            </p>
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-3 lg:items-end">
+          <div className="flex flex-wrap gap-2">
+            <Badge className="border-[#d0ddf3] bg-[#eef4ff] text-[#4f6f99]" variant="outline">
+              Cloudflare-first
+            </Badge>
+            <Badge className="border-[#d9dde8] bg-[#f5f6f9] text-[#646d7b]" variant="outline">
+              Code Catalog
+            </Badge>
+            <Badge className="border-[#efd7b7] bg-[#fff6ea] text-[#9a6a34]" variant="outline">
+              {snapshotLabel}
+            </Badge>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs text-[#989ca3]">Quick Capture</span>
+            <Button
+              className="rounded-full border-[#cfe0f7] bg-[linear-gradient(180deg,#f5f9ff_0%,#eaf2ff_100%)] text-[#31517c] shadow-[0_10px_22px_rgba(142,169,208,0.2)] hover:bg-[#eef4ff]"
+              disabled
+              variant="outline"
+            >
+              New Surface
+            </Button>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
 
 export function HomePage() {
   const { dashboard, status } = useHomeDashboard();
   const [query, setQuery] = useState("");
+  const [activeFilter, setActiveFilter] = useState<ToolFilter>("all");
   const deferredQuery = useDeferredValue(query);
 
-  const filteredModules = useMemo(() => {
+  const toolEntries = useMemo(() => {
     const normalized = deferredQuery.trim().toLowerCase();
 
-    if (!normalized) {
-      return moduleCatalog;
-    }
+    const modules = moduleCatalog.filter((moduleItem) => {
+      if (activeFilter !== "all" && moduleItem.category !== activeFilter) {
+        return false;
+      }
 
-    return moduleCatalog.filter((moduleItem) => {
-      const combinedText = [
+      if (!normalized) {
+        return true;
+      }
+
+      const haystack = [
         moduleItem.title,
         moduleItem.subtitle,
         moduleItem.description,
@@ -30,133 +112,274 @@ export function HomePage() {
         .join(" ")
         .toLowerCase();
 
-      return combinedText.includes(normalized);
+      return haystack.includes(normalized);
     });
-  }, [deferredQuery]);
+
+    if (activeFilter !== "all") {
+      return modules.map((moduleItem) => ({
+        kind: "module" as const,
+        moduleItem
+      }));
+    }
+
+    const reservedTracks = plannedWorkspaceTracks.filter((track) => {
+      if (!normalized) {
+        return true;
+      }
+
+      return [track.en, track.cn, track.description]
+        .join(" ")
+        .toLowerCase()
+        .includes(normalized);
+    });
+
+    return [
+      ...modules.map((moduleItem) => ({
+        kind: "module" as const,
+        moduleItem
+      })),
+      ...reservedTracks.map((track) => ({
+        kind: "reserved" as const,
+        track
+      }))
+    ];
+  }, [activeFilter, deferredQuery]);
+
+  const snapshotLabel = {
+    ready: "Live Snapshot",
+    fallback: "Local Fallback",
+    loading: "Syncing"
+  }[status];
+
+  const leadRecentModule = dashboard.recentModules[0] ?? null;
 
   return (
-    <div className="page-grid">
-      <section className="panel panel-hero">
-        <div className="section-heading">
-          <Pill tone="accent">Workspace</Pill>
-          <h2>一个私人的页面工坊，不是一个公开平台。</h2>
-          <p>
-            这里的重点不是上传任意插件，而是把 AI 为你生成的整页功能，按模块收进一个可维护的主项目。
-          </p>
-        </div>
-        <div className="hero-summary">
-          <div>
-            <span className="metric-label">模块总数</span>
-            <strong>{dashboard.totals.modules}</strong>
-          </div>
-          <div>
-            <span className="metric-label">书库条目</span>
-            <strong>{dashboard.totals.libraryItems}</strong>
-          </div>
-          <div>
-            <span className="metric-label">收藏模块</span>
-            <strong>{dashboard.totals.favorites}</strong>
-          </div>
-          <div>
-            <span className="metric-label">笔记数量</span>
-            <strong>{dashboard.totals.notes}</strong>
-          </div>
-        </div>
-      </section>
+    <div className="grid gap-4 lg:gap-5">
+      <HomeHeader snapshotLabel={snapshotLabel} />
 
-      <section className="panel">
-        <div className="section-heading">
-          <Pill tone="success">
-            {status === "ready" ? "Live snapshot" : "Local fallback"}
-          </Pill>
-          <h2>模块中心</h2>
-          <p>模块元数据来自代码注册表，搜索只在本地执行，不依赖后端。</p>
-        </div>
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
+        <section className="min-w-0 rounded-[1.8rem] border border-[#dce3ec] bg-[linear-gradient(140deg,#ffffff_0%,#f8fbff_100%)] p-4 shadow-[0_18px_40px_rgba(147,164,184,0.12)] sm:p-[1.15rem]">
+          <div className="grid gap-4">
+            <div className="space-y-2">
+              <p className="text-[0.68rem] font-semibold uppercase tracking-[0.22em] text-[#87909a]">
+                Recent Activity / 最近打开
+              </p>
+              <h2 className="font-serif text-[2.5rem] leading-[0.92] tracking-[-0.05em] text-[#1f2e40] sm:text-[3.7rem]">
+                近期工作流
+              </h2>
+              <p className="max-w-3xl text-sm leading-7 text-[#727b86]">
+                这些记录来自 D1；数据库不可用时会自动回退到本地示例数据。这里保留近期上下文，而不是放一堆品牌口号。
+              </p>
+            </div>
 
-        <label className="search-field">
-          <span>搜索模块</span>
-          <input
-            onChange={(event) => {
-              setQuery(event.target.value);
-            }}
-            placeholder="例如：reader, paper, subtitle"
-            value={query}
-          />
-        </label>
-
-        <div className="module-grid">
-          {filteredModules.map((moduleItem) => (
-            <article
-              key={moduleItem.slug}
-              className="module-card"
-              style={
-                {
-                  "--module-accent": moduleItem.accent
-                } as CSSProperties
-              }
-            >
-              <div className="module-card__header">
-                <span className="module-card__icon">{moduleItem.icon}</span>
-                <Pill>{moduleItem.category}</Pill>
-              </div>
-              <div className="module-card__body">
-                <h3>{moduleItem.title}</h3>
-                <p className="module-card__subtitle">{moduleItem.subtitle}</p>
-                <p>{moduleItem.description}</p>
-              </div>
-              <div className="module-card__footer">
-                <Link className="button button-primary" to={`/m/${moduleItem.slug}`}>
-                  打开模块
-                </Link>
-                <span className="module-card__status">{moduleItem.status}</span>
-              </div>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <section className="panel split-panel">
-        <div>
-          <div className="section-heading">
-            <Pill tone="muted">Recent</Pill>
-            <h2>最近打开</h2>
-            <p>这些信息来自 D1；数据库未连接时会自动回退到示例数据。</p>
-          </div>
-          <div className="activity-list">
-            {dashboard.recentModules.map((moduleItem) => (
-              <div key={moduleItem.slug} className="activity-item">
+            {leadRecentModule ? (
+              <div className="flex flex-col gap-3 rounded-[1rem] border border-[#d7e4f7] bg-[#eff5ff] px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <strong>{moduleItem.title}</strong>
-                  <p>{moduleItem.summary}</p>
+                  <p className="text-sm font-medium text-[#34455e]">{leadRecentModule.title} 入口</p>
+                  <p className="mt-1 text-sm text-[#6f7b8d]">{leadRecentModule.summary}</p>
                 </div>
-                <span>{formatRelativeTime(moduleItem.openedAt)}</span>
+                <Button asChild className="rounded-full" size="sm">
+                  <Link to={`/m/${leadRecentModule.slug}`}>
+                    打开 {leadRecentModule.title}
+                    <ArrowRight className="size-4" />
+                  </Link>
+                </Button>
               </div>
-            ))}
-          </div>
-        </div>
+            ) : null}
 
-        <div>
-          <div className="section-heading">
-            <Pill tone="muted">Infra</Pill>
-            <h2>运行时状态</h2>
-            <p>壳层可以在前端先跑起来，D1/R2 再逐步接入。</p>
+            <div className="grid gap-2.5">
+              {dashboard.recentModules.map((moduleItem, index) => (
+                <Link
+                  key={`${moduleItem.slug}-${moduleItem.openedAt}`}
+                  className={`group rounded-[1.15rem] border px-4 py-4 transition-colors ${
+                    index === 0
+                      ? "border-[#d2e1f6] bg-[linear-gradient(180deg,#f5f8ff_0%,#ecf3ff_100%)]"
+                      : "border-[#e3e1da] bg-[#f9f8f5] hover:bg-[#f3f4f6]"
+                  }`}
+                  to={`/m/${moduleItem.slug}`}
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="min-w-0">
+                      <p className="text-lg font-medium tracking-[-0.02em] text-[#243244]">
+                        {moduleItem.title}
+                      </p>
+                      <p className="mt-2 text-sm leading-6 text-[#6b7280]">
+                        {moduleItem.summary}
+                      </p>
+                    </div>
+                    <span className="shrink-0 text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-[#8b95a4]">
+                      {formatRelativeTime(moduleItem.openedAt)}
+                    </span>
+                  </div>
+                </Link>
+              ))}
+            </div>
           </div>
-          <div className="status-stack">
-            <div className="status-card">
-              <strong>D1</strong>
-              <span>{dashboard.infrastructure.d1 ? "Ready" : "Pending"}</span>
+        </section>
+
+        <aside className="grid gap-3">
+          <section className="rounded-[1.5rem] border border-[#d9e2ef] bg-[#f3f6fb] p-4">
+            <div className="flex items-start gap-3">
+              <div className="grid size-10 place-items-center rounded-2xl border border-[#d8e2f4] bg-[linear-gradient(180deg,#f5f8fe_0%,#ebf1fd_100%)] text-[#4a6d9e]">
+                <Sparkles className="size-4" />
+              </div>
+              <div className="space-y-2">
+                <p className="text-sm font-semibold text-[#1f2e40]">结构速览</p>
+                <p className="text-xs leading-5 text-[#465466]">
+                  顶层为工坊首页与阅读器工作台两张主画板，前端当前保留 D1 / R2 接口，只按设计稿重构视觉层。
+                </p>
+                <div className="grid gap-1.5 text-xs text-[#465466]">
+                  <div className="flex items-center gap-2">
+                    <Database className="size-3.5" />
+                    <span>D1: {dashboard.infrastructure.d1 ? "Ready" : "Pending"}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <HardDriveUpload className="size-3.5" />
+                    <span>R2: {dashboard.infrastructure.r2 ? "Ready" : "Pending"}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Wrench className="size-3.5" />
+                    <span>Mode: {dashboard.infrastructure.mode}</span>
+                  </div>
+                </div>
+              </div>
             </div>
-            <div className="status-card">
-              <strong>R2</strong>
-              <span>{dashboard.infrastructure.r2 ? "Ready" : "Pending"}</span>
+          </section>
+
+          <section className="rounded-[1.5rem] border border-[#e2e0d9] bg-[#f7f6f3] p-3">
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-[#9aa0a9]" />
+              <Input
+                className="h-10 rounded-[0.9rem] border-[#e2e0d9] bg-white pl-10 shadow-none"
+                onChange={(event) => {
+                  setQuery(event.target.value);
+                }}
+                placeholder="搜索工具、标签、用途..."
+                value={query}
+              />
             </div>
-            <div className="status-card">
-              <strong>Mode</strong>
-              <span>{dashboard.infrastructure.mode}</span>
+
+            <div className="mt-3 grid grid-cols-4 gap-1.5">
+              {toolFilters.map((filter) => (
+                <button
+                  key={filter.value}
+                  className={`rounded-[0.8rem] border px-2 py-2 text-xs font-medium transition-colors ${
+                    activeFilter === filter.value
+                      ? "border-[#bdd6f5] bg-[linear-gradient(180deg,#eaf3ff_0%,#ddebff_100%)] text-[#31517c]"
+                      : "border-[#e1dfd8] bg-[#f8f7f3] text-[#6f747b] hover:bg-white"
+                  }`}
+                  onClick={() => {
+                    setActiveFilter(filter.value);
+                  }}
+                  type="button"
+                >
+                  {filter.label}
+                </button>
+              ))}
             </div>
-          </div>
-        </div>
-      </section>
+          </section>
+
+          <section className="grid gap-2">
+            <div className="space-y-1">
+              <p className="text-[0.68rem] font-semibold uppercase tracking-[0.22em] text-[#87909a]">
+                Tool Library / 工具总览
+              </p>
+              <h2 className="font-serif text-[2rem] leading-[0.92] tracking-[-0.04em] text-[#1f2e40]">
+                所有工具
+              </h2>
+            </div>
+
+            {toolEntries.length ? (
+              toolEntries.map((entry) => {
+                if (entry.kind === "module") {
+                  const moduleItem = entry.moduleItem;
+                  const Icon = getModuleIcon(moduleItem.slug, moduleItem.category);
+                  const category = getModuleCategoryCopy(moduleItem.category);
+                  const statusCopy = getModuleStatusCopy(moduleItem.status);
+
+                  return (
+                    <Link
+                      key={moduleItem.slug}
+                      className="group flex items-center justify-between gap-3 rounded-[0.95rem] border border-[#e2e0d9] bg-[#f9f8f5] px-3 py-3 transition-colors hover:border-[#c7dbf6] hover:bg-[#eef5ff]"
+                      to={`/m/${moduleItem.slug}`}
+                    >
+                      <div className="flex min-w-0 items-center gap-3">
+                        <div className="grid size-10 shrink-0 place-items-center rounded-2xl border border-[#d6dde8] bg-white text-[#31517c]">
+                          <Icon className="size-4" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-medium text-[#243244]">
+                            {moduleItem.title}
+                          </p>
+                          <p className="truncate text-xs text-[#7b8596]">
+                            {moduleItem.subtitle}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex shrink-0 items-center gap-2">
+                        <Badge
+                          className="border-[#d8dee8] bg-white text-[#667085]"
+                          variant="outline"
+                        >
+                          {category.short}
+                        </Badge>
+                        <Badge
+                          className={
+                            statusCopy.variant === "success"
+                              ? "border-emerald-500/15 bg-emerald-500/10 text-emerald-700"
+                              : "border-[#d8dee8] bg-white text-[#667085]"
+                          }
+                          variant="outline"
+                        >
+                          {statusCopy.en}
+                        </Badge>
+                      </div>
+                    </Link>
+                  );
+                }
+
+                const Icon = entry.track.icon;
+
+                return (
+                  <div
+                    key={entry.track.en}
+                    className="flex items-center justify-between gap-3 rounded-[0.95rem] border border-[#e2e0d9] bg-[#f9f8f5] px-3 py-3"
+                  >
+                    <div className="flex min-w-0 items-center gap-3">
+                      <div className="grid size-10 shrink-0 place-items-center rounded-2xl border border-[#e1dfd8] bg-white text-[#6f747b]">
+                        <Icon className="size-4" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-medium text-[#243244]">
+                          {entry.track.en}
+                        </p>
+                        <p className="truncate text-xs text-[#7b8596]">{entry.track.cn}</p>
+                      </div>
+                    </div>
+                    <Badge className="border-[#e1dfd8] bg-white text-[#7b8596]" variant="outline">
+                      Reserved
+                    </Badge>
+                  </div>
+                );
+              })
+            ) : (
+              <div className="rounded-[1rem] border border-dashed border-[#d8dee8] bg-white/80 px-4 py-5 text-sm leading-6 text-[#7b8596]">
+                当前筛选条件下没有匹配的工具入口。
+              </div>
+            )}
+          </section>
+
+          <section className="flex items-center justify-between gap-3 rounded-[1rem] border border-[#d8e2f4] bg-[linear-gradient(180deg,#f5f8fe_0%,#ebf1fd_100%)] px-4 py-3">
+            <div className="flex items-center gap-2 text-[0.68rem] font-medium uppercase tracking-[0.16em] text-[#7d8490]">
+              <BookOpenText className="size-3.5" />
+              <span>共 {toolEntries.length} 个入口</span>
+            </div>
+            <span className="text-[0.68rem] font-semibold text-[#4a6d9e]">
+              进入 Reader 后可返回主页
+            </span>
+          </section>
+        </aside>
+      </div>
     </div>
   );
 }

@@ -14,12 +14,23 @@
     "dictionary:build-default": "node scripts/build_default_ecdict.mjs /tmp/ecdict.csv src/shared/reader/default-ecdict.json"
   },
   "dependencies": {
+    "@radix-ui/react-dialog": "^1.1.15",
+    "@radix-ui/react-scroll-area": "^1.2.10",
+    "@radix-ui/react-separator": "^1.1.8",
+    "@radix-ui/react-slot": "^1.2.4",
+    "@radix-ui/react-visually-hidden": "^1.2.4",
+    "@tailwindcss/vite": "^4.2.1",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
     "drizzle-orm": "0.45.1",
     "epubjs": "^0.3.93",
     "jszip": "^3.10.1",
+    "lucide-react": "^0.577.0",
     "react": "19.2.4",
     "react-dom": "19.2.4",
-    "react-router-dom": "7.13.1"
+    "react-router-dom": "7.13.1",
+    "tailwind-merge": "^3.5.0",
+    "tailwindcss": "^4.2.1"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "4.20260307.1",

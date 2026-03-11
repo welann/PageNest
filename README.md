@@ -2,7 +2,8 @@
 
 PageNest is a private, Cloudflare-first workspace for collecting AI-built page modules in one place. This scaffold favors maintainability over feature count:
 
-- `React + Vite` for a lean client shell
+- `React + Vite + Tailwind CSS` for a lean client shell
+- `shadcn/ui` for the shared shell and surface component system
 - `Cloudflare Pages Functions` for API endpoints
 - `D1` for structured personal state
 - `R2` for large assets such as books, covers, and exports
@@ -13,12 +14,12 @@ PageNest is a private, Cloudflare-first workspace for collecting AI-built page m
 ```txt
 src/
   app/              App shell and routes
-  components/       Reusable UI and shell pieces
+  components/       Reusable shell pieces and shadcn/ui primitives
   features/         Route-level feature composition
   modules/          Self-contained page modules
   server/           Data schema and server-only helpers
   services/         Client API access
-  shared/           Shared types and utilities
+  shared/           Shared types, styling tokens, and utilities
 functions/
   api/              Cloudflare Pages Function endpoints
 db/
@@ -71,18 +72,20 @@ Notes:
 - Large files live in R2
 - New modules are added under `src/modules/<slug>`
 - Module views are lazy-loaded to keep the shell small
+- The shell and home surface use `shadcn/ui` tokens and components
 - SQL migrations are hand-authored in `db/migrations/` for now
 
 ## Modules
 
 ### Ebook Reader
 
-The Ebook Reader module is a Cloudflare-backed EPUB reading workflow for English novel study.
+The Ebook Reader module is a Cloudflare-backed EPUB reading workflow for English novel study, now presented in the Pencil-defined workspace UI while keeping the same import, progress, vocabulary, and export APIs.
 
 Current capabilities:
 
 - import EPUB books into R2 and track progress in D1
 - preload a default ECDICT subset plus user-imported dictionary data
+- use a module-specific reading sidebar for workspace return plus import/export commands
 - detect unknown words on the current page with lemma-based matching
 - inspect a clicked or selected word in the side panel
 - mark words or the whole current page as learned

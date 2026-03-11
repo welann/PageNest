@@ -1,192 +1,58 @@
-.page {
+.readerViewport {
   display: grid;
-  gap: 1.5rem;
-}
-
-.noticePanel {
-  background:
-    linear-gradient(180deg, rgba(181, 110, 59, 0.12), rgba(181, 110, 59, 0.04)),
-    rgba(255, 255, 255, 0.72);
-}
-
-.errorPanel {
-  border-color: rgba(135, 58, 34, 0.22);
-  background:
-    linear-gradient(180deg, rgba(135, 58, 34, 0.12), rgba(135, 58, 34, 0.04)),
-    rgba(255, 255, 255, 0.82);
-}
-
-.errorActions {
-  display: flex;
   gap: 0.75rem;
 }
 
-.uploadGrid {
-  display: grid;
-  gap: 1rem;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-
-.uploadCard {
-  padding: 1.3rem;
-  border-radius: 1.5rem;
-  border: 1px solid rgba(30, 42, 54, 0.08);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.76), rgba(255, 255, 255, 0.56)),
-    radial-gradient(circle at top right, rgba(181, 110, 59, 0.12), transparent 46%);
-  box-shadow: var(--shadow);
-}
-
-.uploadCard h3 {
-  margin: 0.25rem 0 0;
-  font-family:
-    "Noto Serif SC",
-    "Source Han Serif SC",
-    serif;
-}
-
-.fileField {
-  display: grid;
-  gap: 0.55rem;
-  color: var(--muted);
-}
-
-.fileField input {
-  width: 100%;
-  padding: 0.9rem 1rem;
-  border: 1px dashed rgba(30, 42, 54, 0.22);
-  border-radius: 1rem;
-  background: rgba(255, 255, 255, 0.78);
-}
-
-.uploadFooter {
-  display: flex;
-  justify-content: space-between;
-  gap: 1rem;
-  align-items: center;
-  margin-top: 1rem;
-}
-
-.uploadFooter small {
-  color: var(--muted);
-}
-
-.libraryGrid {
-  display: grid;
-  gap: 1rem;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-}
-
-.libraryCard {
-  display: grid;
-  gap: 1rem;
-  padding: 1.1rem;
-  border: 1px solid rgba(30, 42, 54, 0.08);
-  border-radius: 1.3rem;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.66), rgba(255, 255, 255, 0.44)),
-    linear-gradient(135deg, rgba(30, 42, 54, 0.05), transparent);
-  text-align: left;
-  transition:
-    transform 160ms ease,
-    border-color 160ms ease,
-    box-shadow 160ms ease;
-}
-
-.libraryCard:hover,
-.libraryCard:focus-visible {
-  transform: translateY(-1px);
-  border-color: rgba(181, 110, 59, 0.28);
-  box-shadow: 0 20px 40px rgba(30, 42, 54, 0.1);
-}
-
-.libraryCardSelected {
-  border-color: rgba(181, 110, 59, 0.38);
-  background:
-    linear-gradient(180deg, rgba(181, 110, 59, 0.14), rgba(255, 255, 255, 0.7)),
-    rgba(255, 255, 255, 0.88);
-}
-
-.libraryCardHeader {
+.readerTopBar {
   display: flex;
   justify-content: space-between;
   gap: 1rem;
   align-items: flex-start;
+  padding: 1rem 1.125rem;
+  border: 1px solid #d9dee5;
+  border-radius: 0.95rem;
+  background: #ffffff;
 }
 
-.libraryCardHeader p,
-.libraryMeta {
-  margin: 0.35rem 0 0;
-  color: var(--muted);
-}
-
-.libraryMeta {
-  display: flex;
-  justify-content: space-between;
-  gap: 0.8rem;
-  font-size: 0.92rem;
-}
-
-.libraryEmpty,
-.emptyState {
-  padding: 1.3rem;
-  border-radius: 1.1rem;
-  border: 1px dashed rgba(30, 42, 54, 0.18);
-  background: rgba(255, 255, 255, 0.48);
-  color: var(--muted);
-}
-
-.workspace {
-  display: grid;
-  gap: 1.5rem;
-  grid-template-columns: minmax(0, 1.45fr) minmax(320px, 0.8fr);
-}
-
-.readerColumn,
-.sidebarColumn {
+.readerMeta {
   min-width: 0;
 }
 
-.readerViewport {
-  display: grid;
-  gap: 1rem;
+.readerMetaLabel {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #7b8596;
 }
 
-.readerActions {
-  display: flex;
-  gap: 0.85rem;
-  align-items: center;
-  flex-wrap: wrap;
-  margin-bottom: 1rem;
+.readerMeta strong {
+  display: block;
+  margin-top: 0.35rem;
+  font-family: var(--font-serif);
+  font-size: 1.15rem;
+  line-height: 1.15;
+  color: #1f2a37;
 }
 
-.readerActions span {
-  color: var(--muted);
-  font-size: 0.92rem;
-}
-
-.readerToolbar {
-  display: flex;
-  justify-content: space-between;
-  gap: 1rem;
-  align-items: center;
-}
-
-.readerToolbar p {
+.readerMeta p:last-child {
   margin: 0.35rem 0 0;
-  color: var(--muted);
+  font-size: 0.9rem;
+  color: #6f7b8f;
 }
 
 .readerToolbarMeta {
   display: flex;
+  flex-wrap: wrap;
   gap: 0.75rem;
   align-items: center;
-  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
-.readerToolbarMeta span {
-  color: var(--muted);
-  font-size: 0.9rem;
+.readerToolbarMeta > span {
+  font-size: 0.85rem;
+  color: #6f7b8f;
 }
 
 .fontSizeControls {
@@ -197,22 +63,26 @@
 }
 
 .fontSizeControls span {
-  min-width: 3.3rem;
+  min-width: 3rem;
   text-align: center;
-  font-family:
-    "IBM Plex Mono",
-    "SFMono-Regular",
-    monospace;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  color: #374151;
+}
+
+.readerCard {
+  padding: 1rem;
+  border: 1px solid #d9dee5;
+  border-radius: 1rem;
+  background: #ffffff;
 }
 
 .readerFrame {
   position: relative;
   min-height: 680px;
-  border-radius: 1.45rem;
-  border: 1px solid rgba(30, 42, 54, 0.12);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(244, 238, 228, 0.92)),
-    radial-gradient(circle at top, rgba(181, 110, 59, 0.12), transparent 42%);
+  border: 1px solid #e6e0d4;
+  border-radius: 1rem;
+  background: #fcfaf5;
   overflow: hidden;
 }
 
@@ -233,156 +103,55 @@
   inset: 0;
   display: grid;
   place-items: center;
-  background: rgba(245, 241, 232, 0.72);
-  backdrop-filter: blur(10px);
-  font-size: 1rem;
+  background: rgba(252, 250, 245, 0.82);
+  backdrop-filter: blur(8px);
+  font-size: 0.95rem;
+  color: #4b5568;
 }
 
 .readerError {
-  padding: 1rem 1.1rem;
-  border-radius: 1rem;
+  padding: 0.9rem 1rem;
+  border-radius: 0.9rem;
   border: 1px solid rgba(135, 58, 34, 0.24);
   background: rgba(135, 58, 34, 0.08);
 }
 
 .readerError p {
   margin: 0.35rem 0 0;
+  color: #5b433d;
 }
 
-.wordList {
-  display: grid;
-  gap: 0.85rem;
-}
-
-.wordRow {
+.pageBar {
   display: flex;
   justify-content: space-between;
   gap: 1rem;
-  align-items: flex-start;
-  padding: 0.95rem 1rem;
-  border-radius: 1rem;
-  border: 1px solid rgba(30, 42, 54, 0.08);
-  background: rgba(255, 255, 255, 0.74);
-  text-align: left;
-  transition:
-    transform 160ms ease,
-    border-color 160ms ease;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  border: 1px solid #d9dee5;
+  border-radius: 0.8rem;
+  background: #ffffff;
 }
 
-.wordRow:hover,
-.wordRow:focus-visible {
-  transform: translateY(-1px);
-  border-color: rgba(181, 110, 59, 0.28);
+.pageBar > span {
+  min-width: 0;
+  font-size: 0.8rem;
+  color: #6f7b8f;
 }
 
-.wordRowActive {
-  border-color: rgba(181, 110, 59, 0.36);
-  background: rgba(181, 110, 59, 0.12);
+.pageControls {
+  display: inline-flex;
+  gap: 0.5rem;
 }
 
-.wordRow p {
-  margin: 0.3rem 0 0;
-  color: var(--muted);
-}
-
-.wordRow span {
-  color: var(--muted);
-  white-space: nowrap;
-}
-
-.definitionCard,
-.exportCard {
-  display: grid;
-  gap: 1rem;
-}
-
-.definitionHeader {
-  display: flex;
-  justify-content: space-between;
-  gap: 1rem;
-  align-items: flex-start;
-}
-
-.definitionHeader p {
-  margin: 0.35rem 0 0;
-  color: var(--muted);
-}
-
-.phonetic {
-  font-family:
-    "IBM Plex Mono",
-    "SFMono-Regular",
-    monospace;
-}
-
-.definitionText {
-  margin: 0;
-  font-size: 1.05rem;
-}
-
-.definitionNote,
-.sampleText {
-  margin: 0;
-  color: var(--muted);
-}
-
-.sampleText {
-  padding: 0.95rem 1rem;
-  border-radius: 1rem;
-  background: rgba(255, 255, 255, 0.76);
-  border: 1px solid rgba(30, 42, 54, 0.08);
-}
-
-.definitionActions,
-.exportActions {
-  display: flex;
-  gap: 0.75rem;
-  flex-wrap: wrap;
-}
-
-.exportMeta {
-  padding: 0.95rem 1rem;
-  border-radius: 1rem;
-  background: rgba(255, 255, 255, 0.74);
-  border: 1px solid rgba(30, 42, 54, 0.08);
-}
-
-.exportMeta span {
-  display: block;
-  color: var(--muted);
-  font-size: 0.86rem;
-}
-
-.exportMeta strong {
-  display: block;
-  margin-top: 0.35rem;
-}
-
-@media (max-width: 1120px) {
-  .uploadGrid,
-  .workspace {
-    grid-template-columns: 1fr;
-  }
-}
-
-@media (max-width: 720px) {
-  .uploadGrid {
-    gap: 0.85rem;
-  }
-
-  .uploadFooter,
-  .readerActions,
-  .readerToolbar,
-  .readerToolbarMeta,
-  .definitionHeader {
+@media (max-width: 900px) {
+  .readerTopBar,
+  .pageBar {
     flex-direction: column;
-    align-items: flex-start;
+    align-items: stretch;
   }
 
-  .readerFrame,
-  .readerMount,
-  .readerMount :global(iframe) {
-    min-height: 540px;
-    height: 540px;
+  .readerToolbarMeta,
+  .pageControls {
+    justify-content: flex-start;
   }
 }

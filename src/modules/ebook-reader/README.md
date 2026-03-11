@@ -15,13 +15,15 @@ It is built for EPUB-based reading and vocabulary tracking:
 - batch mark all unknown lemmas on the current page as learned
 - export the saved unknown-word list for the current book as a CSV generated on the server
 - adjust reading font size and reflow pagination with updated total-page calculation
+- present the module in the Pencil-defined workspace layout, with a command header, focused reading canvas, fixed word-detail panel, and import/export status cards
 
 ## Directory Structure
 
 ```txt
 src/modules/ebook-reader/
   manifest.ts         Module registration metadata
-  view.tsx            Module-level orchestration, imports, state, sidebar, export actions
+  view.tsx            Module-level orchestration, imports, state, and layout composition
+  ReaderSidebar.tsx   Module-specific navigation rail and import/export command surface
   ReaderViewport.tsx  epub.js reading surface, pagination, selection, highlighting, font reflow
   view.module.css     Reading layout and module-specific styling
 ```
@@ -34,7 +36,13 @@ src/modules/ebook-reader/
   - loads bootstrap data from `/api/reader/bootstrap`
   - merges the built-in ECDICT subset with user-imported dictionary entries
   - owns selected book, selected word, current-page unknown words, saved unknown words, and upload state
+  - maps the persisted reader state onto the Pencil-inspired workspace UI without changing the existing backend contracts
+  - composes the left reading rail, central reader viewport, and right-side detail/status panels
   - coordinates actions such as importing EPUB/dictionary/learned words, marking learned lemmas, saving unknown words, and triggering exports
+- [ReaderSidebar.tsx](/Users/welann/Documents/code/daily/PageNest/src/modules/ebook-reader/ReaderSidebar.tsx)
+  - renders the module-local navigation rail instead of relying on the global workspace sidebar
+  - keeps the workspace return entry visible while surfacing import/export commands in a dedicated reader-side command area
+  - provides a matching mobile sheet so the same controls remain reachable on smaller screens
 - [ReaderViewport.tsx](/Users/welann/Documents/code/daily/PageNest/src/modules/ebook-reader/ReaderViewport.tsx)
   - renders EPUB content with `epub.js`
   - tracks current locator and progress percent
@@ -42,6 +50,7 @@ src/modules/ebook-reader/
   - highlights unknown words in the current rendered page
   - supports direct word selection from the EPUB iframe
   - applies reader typography updates and rebuilds page counts after font-size changes
+  - renders the reader chrome used by the new workspace design: metadata row, focused reading card, and page navigation bar
 
 ### Shared Reader Logic
 
@@ -71,17 +80,18 @@ src/modules/ebook-reader/
 
 1. The module loads bootstrap data from D1 through `/api/reader/bootstrap`.
 2. The frontend merges the built-in default dictionary with user-imported dictionary records and builds a vocabulary lookup.
-3. The selected EPUB is loaded from R2 into `epub.js`.
-4. On `rendered` and `relocated`, the reader:
+3. `view.tsx` composes the workspace layout around the current bootstrap snapshot and wires the reader rail, viewport toolbar, and detail panel actions to the existing reader APIs.
+4. The selected EPUB is loaded from R2 into `epub.js`.
+5. On `rendered` and `relocated`, the reader:
    - applies typography to the rendered EPUB contents
    - extracts visible text tokens
    - maps each token to a lemma
    - skips learned lemmas and ignored tokens
    - highlights unknown words on the current page
-5. When the user selects a word:
+6. When the user selects a word:
    - the sidebar shows lemma, surface form, and dictionary meaning
    - the user can mark it as learned or save it into the current book's unknown list
-6. Export requests are handled on the server, written to R2, and surfaced back through the latest-export API.
+7. Export requests are handled on the server, written to R2, and surfaced back through the latest-export API.
 
 ## Storage Model
 
@@ -109,6 +119,8 @@ The browser may cache data temporarily for UX, but D1 and R2 remain the source o
 - batch mark all unknown lemmas on the current page as learned
 - server-side CSV export for saved unknown words
 - adjustable reading font size with automatic reflow and total-page recalculation
+- Pencil-aligned reader workspace redesign while preserving the existing Cloudflare API surface and storage model
+- dedicated reader-side navigation rail with a clear return path back to the main workspace
 
 ## Maintenance Notes
 
