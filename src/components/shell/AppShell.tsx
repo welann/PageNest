@@ -3,6 +3,7 @@ import { Link, Outlet, useLocation } from "react-router-dom";
 
 import { Badge } from "@components/ui/badge";
 import { Button } from "@components/ui/button";
+import { ModuleShellProvider } from "@components/shell/moduleShell";
 import { Sidebar, MobileSidebarToggle } from "@components/shell/Sidebar";
 import { getModuleBySlug } from "@modules/registry";
 import {
@@ -46,7 +47,7 @@ function getRouteMeta(pathname: string) {
   };
 }
 
-export function AppShell() {
+function AppShellLayout() {
   const location = useLocation();
   const routeMeta = useMemo(() => getRouteMeta(location.pathname), [location.pathname]);
   const isImmersiveRoute =
@@ -54,7 +55,7 @@ export function AppShell() {
 
   if (isImmersiveRoute) {
     return (
-      <div className="min-h-screen xl:grid xl:grid-cols-[16rem_minmax(0,1fr)]">
+      <div className="min-h-screen xl:grid xl:grid-cols-[22rem_minmax(0,1fr)]">
         <Sidebar />
         <div className="min-w-0 px-3 py-3 sm:px-4 lg:px-5">
           <div className="mb-3 xl:hidden">
@@ -128,5 +129,13 @@ export function AppShell() {
         </div>
       </div>
     </div>
+  );
+}
+
+export function AppShell() {
+  return (
+    <ModuleShellProvider>
+      <AppShellLayout />
+    </ModuleShellProvider>
   );
 }

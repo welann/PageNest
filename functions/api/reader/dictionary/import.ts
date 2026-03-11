@@ -30,6 +30,11 @@ export const onRequestPost: PagesFunction<Env> = async ({ env, request }) => {
     );
 
     return jsonOk({
+      entries: imported.rows.map((row) => ({
+        ...row,
+        source: imported.source,
+        updatedAt: timestamp
+      })),
       imported: imported.rows.length,
       source: imported.source
     });

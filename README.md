@@ -87,11 +87,14 @@ Current capabilities:
 
 - import EPUB books into R2 and track progress in D1
 - preload a default ECDICT subset plus user-imported dictionary data
-- use a module-specific reading sidebar for workspace return plus import/export commands
+- use the shared left workspace sidebar, with a reader-specific submenu for commands, selected-word actions, and reading status
+- keep the current-page bulk learning action in the reader toolbar so it stays attached to the active reading context
 - detect unknown words on the current page with lemma-based matching
-- inspect a clicked or selected word in the side panel
+- inspect a clicked or selected word in the shared sidebar submenu
 - mark words or the whole current page as learned
 - save explicit unknown words and export them as server-generated CSV files
+- preserve explicitly saved unknown words when bulk-marking the current page as learned, while still allowing manual single-word learning to clear them
 - adjust reader font size and automatically reflow pagination
+- update imported books, dictionary data, learned words, unknown-word state, and export metadata immediately in the UI without requiring a page refresh
 
-Detailed module documentation: [src/modules/ebook-reader/README.md](/Users/welann/Documents/code/daily/PageNest/src/modules/ebook-reader/README.md)
+Detailed module documentation: [src/modules/ebook-reader/README.md](./src/modules/ebook-reader/README.md)

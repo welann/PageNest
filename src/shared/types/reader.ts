@@ -79,6 +79,14 @@ export interface ReaderImportResult {
   source: string;
 }
 
+export interface ReaderDictionaryImportResult extends ReaderImportResult {
+  entries: ReaderDictionaryEntry[];
+}
+
+export interface ReaderLearnedImportResult extends ReaderImportResult {
+  learned: ReaderLearnedLemma[];
+}
+
 export interface ReaderBookImportResult {
   book: ReaderBookSummary;
 }

@@ -1,9 +1,10 @@
 import type {
   ReaderBookImportResult,
   ReaderBootstrap,
+  ReaderDictionaryImportResult,
   ReaderExportTriggerResult,
-  ReaderImportResult,
   ReaderLatestExportResult,
+  ReaderLearnedImportResult,
   ReaderLearnedUpdateResult,
   ReaderProgressUpdateResult,
   ReaderUnknownUpdateResult
@@ -41,7 +42,8 @@ async function uploadForm<T>(path: string, file: File): Promise<T> {
 }
 
 export async function getReaderBootstrap(signal?: AbortSignal) {
-  const response = await fetch("/api/reader/bootstrap", {
+  const response = await fetch(`/api/reader/bootstrap?ts=${Date.now()}`, {
+    cache: "no-store",
     headers: {
       Accept: "application/json"
     },
@@ -60,16 +62,24 @@ export function importReaderBook(file: File) {
 }
 
 export function importReaderDictionary(file: File) {
-  return uploadForm<ReaderImportResult>("/api/reader/dictionary/import", file);
+  return uploadForm<ReaderDictionaryImportResult>("/api/reader/dictionary/import", file);
 }
 
 export function importReaderLearnedWords(file: File) {
-  return uploadForm<ReaderImportResult>("/api/reader/learned/import", file);
+  return uploadForm<ReaderLearnedImportResult>("/api/reader/learned/import", file);
 }
 
-export async function markReaderLearnedLemmas(lemmas: string[]) {
+export async function markReaderLearnedLemmas(
+  lemmas: string[],
+  options?: {
+    deleteUnknown?: boolean;
+    itemId?: number;
+  }
+) {
   const response = await fetch("/api/reader/learned", {
     body: JSON.stringify({
+      deleteUnknown: options?.deleteUnknown,
+      itemId: options?.itemId,
       lemmas
     }),
     headers: {
@@ -128,7 +138,8 @@ export async function triggerReaderUnknownWordsExport(bookId: number) {
 }
 
 export async function getReaderLatestExport(bookId: number) {
-  const response = await fetch(`/api/reader/books/${bookId}/exports/latest`, {
+  const response = await fetch(`/api/reader/books/${bookId}/exports/latest?ts=${Date.now()}`, {
+    cache: "no-store",
     headers: {
       Accept: "application/json"
     }

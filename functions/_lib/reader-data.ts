@@ -506,7 +506,13 @@ export async function listUnknownLemmas(db: D1Database, itemId?: number) {
   return result.results?.map(mapUnknownRow) ?? [];
 }
 
-async function deleteUnknownLemmas(db: D1Database, lemmas: string[]) {
+async function deleteUnknownLemmas(
+  db: D1Database,
+  lemmas: string[],
+  options?: {
+    itemId?: number;
+  }
+) {
   if (!lemmas.length) {
     return;
   }
@@ -514,14 +520,23 @@ async function deleteUnknownLemmas(db: D1Database, lemmas: string[]) {
   await batchRun(
     db,
     lemmas.map((lemma) =>
-      db
-        .prepare(
-          `
-            DELETE FROM reader_unknown_lemmas
-            WHERE lemma = ?
-          `
-        )
-        .bind(lemma)
+      options?.itemId
+        ? db
+            .prepare(
+              `
+                DELETE FROM reader_unknown_lemmas
+                WHERE item_id = ? AND lemma = ?
+              `
+            )
+            .bind(options.itemId, lemma)
+        : db
+            .prepare(
+              `
+                DELETE FROM reader_unknown_lemmas
+                WHERE lemma = ?
+              `
+            )
+            .bind(lemma)
     )
   );
 }
@@ -614,7 +629,11 @@ export async function markLemmasAsLearned(
   db: D1Database,
   lemmas: string[],
   source: string,
-  learnedAt: string
+  learnedAt: string,
+  options?: {
+    deleteUnknown?: boolean;
+    itemId?: number;
+  }
 ) {
   const normalizedLemmas = Array.from(new Set(lemmas));
 
@@ -645,7 +664,11 @@ export async function markLemmasAsLearned(
     )
   );
 
-  await deleteUnknownLemmas(db, normalizedLemmas);
+  if (options?.deleteUnknown !== false) {
+    await deleteUnknownLemmas(db, normalizedLemmas, {
+      itemId: options?.itemId
+    });
+  }
 
   return normalizedLemmas.map(
     (lemma) =>

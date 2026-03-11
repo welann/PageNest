@@ -35,6 +35,16 @@ export const onRequestPost: PagesFunction<Env> = async ({ env, request }) => {
     );
 
     return jsonOk({
+      learned: imported.rows.map((row) => {
+        const learnedAt = row.learnedAt || fallbackTimestamp;
+
+        return {
+          lemma: row.lemma,
+          source: row.source || imported.source,
+          learnedAt,
+          updatedAt: learnedAt
+        };
+      }),
       imported: imported.rows.length,
       source: imported.source
     });

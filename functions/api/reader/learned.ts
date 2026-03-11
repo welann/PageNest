@@ -12,6 +12,8 @@ export const onRequestPut: PagesFunction<Env> = async ({ env, request }) => {
   try {
     const { db } = requireReaderBindings(env);
     const body = (await request.json()) as {
+      deleteUnknown?: boolean;
+      itemId?: number;
       lemma?: string;
       lemmas?: string[];
       source?: string;
@@ -33,7 +35,14 @@ export const onRequestPut: PagesFunction<Env> = async ({ env, request }) => {
       db,
       lemmas,
       body.source?.trim() || "reader",
-      body.learnedAt?.trim() || new Date().toISOString()
+      body.learnedAt?.trim() || new Date().toISOString(),
+      {
+        deleteUnknown: body.deleteUnknown,
+        itemId:
+          typeof body.itemId === "number" && Number.isInteger(body.itemId) && body.itemId > 0
+            ? body.itemId
+            : undefined
+      }
     );
 
     return jsonOk({ learned });
