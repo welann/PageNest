@@ -1,6 +1,6 @@
 import type { ComponentType } from "react";
 
-export type ModuleCategory = "reader" | "research" | "media";
+export type ModuleCategory = "reader";
 export type ModuleStatus = "stable" | "draft";
 
 export interface ModuleManifest {
@@ -19,4 +19,3 @@ export interface PageModule {
   manifest: ModuleManifest;
   load: () => Promise<{ default: ComponentType }>;
 }
-

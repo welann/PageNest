@@ -1,6 +1,6 @@
 # PageNest
 
-PageNest is a private, Cloudflare-first workspace for collecting AI-built page modules in one place. This scaffold favors maintainability over feature count:
+PageNest is a private, Cloudflare-first workspace focused on the `ebook-reader` module and its supporting reading workflow. This scaffold favors maintainability over feature count:
 
 - `React + Vite + Tailwind CSS` for a lean client shell
 - `shadcn/ui` for the shared shell and surface component system
@@ -80,6 +80,8 @@ Notes:
 ### Ebook Reader
 
 The Ebook Reader module is a Cloudflare-backed EPUB reading workflow for English novel study, now presented in the Pencil-defined workspace UI while keeping the same import, progress, vocabulary, and export APIs.
+
+It is currently the only retained module in this repository.
 
 Current capabilities:
 

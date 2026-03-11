@@ -65,12 +65,14 @@ export async function buildDashboardSnapshot(env: Env): Promise<DashboardSnapsho
   );
 
   const recentModules: DashboardRecentModule[] =
-    recentResult.results?.map((row) => ({
-      slug: row.slug,
-      title: manifestLookup.get(row.slug)?.title ?? row.slug,
-      summary: row.summary,
-      openedAt: row.lastOpenedAt
-    })) ?? [];
+    recentResult.results
+      ?.filter((row) => manifestLookup.has(row.slug))
+      .map((row) => ({
+        slug: row.slug,
+        title: manifestLookup.get(row.slug)?.title ?? row.slug,
+        summary: row.summary,
+        openedAt: row.lastOpenedAt
+      })) ?? [];
 
   return {
     totals: {

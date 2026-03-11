@@ -15,18 +15,6 @@ export function createMockDashboard(): DashboardSnapshot {
         title: "Ebook Reader",
         summary: "继续阅读《Designing Data-Intensive Applications》",
         openedAt: new Date(Date.now() - 1000 * 60 * 22).toISOString()
-      },
-      {
-        slug: "paper-desk",
-        title: "Paper Desk",
-        summary: "整理今天的论文摘录与标签",
-        openedAt: new Date(Date.now() - 1000 * 60 * 95).toISOString()
-      },
-      {
-        slug: "subtitle-workbench",
-        title: "Subtitle Workbench",
-        summary: "校对一个字幕片段的分句节奏",
-        openedAt: new Date(Date.now() - 1000 * 60 * 240).toISOString()
       }
     ],
     infrastructure: {
@@ -36,4 +24,3 @@ export function createMockDashboard(): DashboardSnapshot {
     }
   };
 }
-

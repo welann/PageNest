@@ -14,24 +14,9 @@ import { Badge } from "@components/ui/badge";
 import { Button } from "@components/ui/button";
 import { Input } from "@components/ui/input";
 import { moduleCatalog } from "@modules/catalog";
-import type { ModuleCategory } from "@modules/contracts";
 import { useHomeDashboard } from "@features/home/useHomeDashboard";
 import { formatRelativeTime } from "@shared/utils/format";
-import {
-  getModuleCategoryCopy,
-  getModuleIcon,
-  getModuleStatusCopy,
-  plannedWorkspaceTracks
-} from "@shared/ui/modulePresentation";
-
-type ToolFilter = "all" | ModuleCategory;
-
-const toolFilters: Array<{ label: string; value: ToolFilter }> = [
-  { label: "All", value: "all" },
-  { label: "Read", value: "reader" },
-  { label: "Research", value: "research" },
-  { label: "Media", value: "media" }
-];
+import { getModuleCategoryCopy, getModuleIcon, getModuleStatusCopy } from "@shared/ui/modulePresentation";
 
 function HomeHeader({
   snapshotLabel
@@ -47,10 +32,10 @@ function HomeHeader({
           </p>
           <div className="space-y-2">
             <h1 className="font-serif text-[2.2rem] leading-[0.95] tracking-[-0.04em] text-[#1f2e40] sm:text-[3.1rem]">
-              Private Research Desk
+              Private Reading Desk
             </h1>
             <p className="max-w-3xl text-sm leading-7 text-[#6f747b] sm:text-base">
-              统一接入你构建的 AI 工具，在同一工作台里完成研究、执行与复盘。
+              统一进入你的 Ebook Reader 工作流，在同一工作台里完成阅读、查词、导出与进度管理。
             </p>
           </div>
         </div>
@@ -87,22 +72,17 @@ function HomeHeader({
 export function HomePage() {
   const { dashboard, status } = useHomeDashboard();
   const [query, setQuery] = useState("");
-  const [activeFilter, setActiveFilter] = useState<ToolFilter>("all");
   const deferredQuery = useDeferredValue(query);
 
   const toolEntries = useMemo(() => {
     const normalized = deferredQuery.trim().toLowerCase();
 
-    const modules = moduleCatalog.filter((moduleItem) => {
-      if (activeFilter !== "all" && moduleItem.category !== activeFilter) {
-        return false;
-      }
-
+    return moduleCatalog.filter((moduleItem) => {
       if (!normalized) {
         return true;
       }
 
-      const haystack = [
+      return [
         moduleItem.title,
         moduleItem.subtitle,
         moduleItem.description,
@@ -110,40 +90,10 @@ export function HomePage() {
         ...moduleItem.keywords
       ]
         .join(" ")
-        .toLowerCase();
-
-      return haystack.includes(normalized);
-    });
-
-    if (activeFilter !== "all") {
-      return modules.map((moduleItem) => ({
-        kind: "module" as const,
-        moduleItem
-      }));
-    }
-
-    const reservedTracks = plannedWorkspaceTracks.filter((track) => {
-      if (!normalized) {
-        return true;
-      }
-
-      return [track.en, track.cn, track.description]
-        .join(" ")
         .toLowerCase()
         .includes(normalized);
     });
-
-    return [
-      ...modules.map((moduleItem) => ({
-        kind: "module" as const,
-        moduleItem
-      })),
-      ...reservedTracks.map((track) => ({
-        kind: "reserved" as const,
-        track
-      }))
-    ];
-  }, [activeFilter, deferredQuery]);
+  }, [deferredQuery]);
 
   const snapshotLabel = {
     ready: "Live Snapshot",
@@ -168,7 +118,7 @@ export function HomePage() {
                 近期工作流
               </h2>
               <p className="max-w-3xl text-sm leading-7 text-[#727b86]">
-                这些记录来自 D1；数据库不可用时会自动回退到本地示例数据。这里保留近期上下文，而不是放一堆品牌口号。
+                这些记录来自 D1；数据库不可用时会自动回退到本地示例数据。现在工作台只保留阅读器相关上下文。
               </p>
             </div>
 
@@ -226,7 +176,7 @@ export function HomePage() {
               <div className="space-y-2">
                 <p className="text-sm font-semibold text-[#1f2e40]">结构速览</p>
                 <p className="text-xs leading-5 text-[#465466]">
-                  顶层为工坊首页与阅读器工作台两张主画板，前端当前保留 D1 / R2 接口，只按设计稿重构视觉层。
+                  当前项目保留工坊首页与 Ebook Reader 两个主入口，前端继续连接 D1 / R2 阅读数据与导出接口。
                 </p>
                 <div className="grid gap-1.5 text-xs text-[#465466]">
                   <div className="flex items-center gap-2">
@@ -258,25 +208,6 @@ export function HomePage() {
                 value={query}
               />
             </div>
-
-            <div className="mt-3 grid grid-cols-4 gap-1.5">
-              {toolFilters.map((filter) => (
-                <button
-                  key={filter.value}
-                  className={`rounded-[0.8rem] border px-2 py-2 text-xs font-medium transition-colors ${
-                    activeFilter === filter.value
-                      ? "border-[#bdd6f5] bg-[linear-gradient(180deg,#eaf3ff_0%,#ddebff_100%)] text-[#31517c]"
-                      : "border-[#e1dfd8] bg-[#f8f7f3] text-[#6f747b] hover:bg-white"
-                  }`}
-                  onClick={() => {
-                    setActiveFilter(filter.value);
-                  }}
-                  type="button"
-                >
-                  {filter.label}
-                </button>
-              ))}
-            </div>
           </section>
 
           <section className="grid gap-2">
@@ -285,86 +216,59 @@ export function HomePage() {
                 Tool Library / 工具总览
               </p>
               <h2 className="font-serif text-[2rem] leading-[0.92] tracking-[-0.04em] text-[#1f2e40]">
-                所有工具
+                当前模块
               </h2>
             </div>
 
             {toolEntries.length ? (
-              toolEntries.map((entry) => {
-                if (entry.kind === "module") {
-                  const moduleItem = entry.moduleItem;
-                  const Icon = getModuleIcon(moduleItem.slug, moduleItem.category);
-                  const category = getModuleCategoryCopy(moduleItem.category);
-                  const statusCopy = getModuleStatusCopy(moduleItem.status);
-
-                  return (
-                    <Link
-                      key={moduleItem.slug}
-                      className="group flex items-center justify-between gap-3 rounded-[0.95rem] border border-[#e2e0d9] bg-[#f9f8f5] px-3 py-3 transition-colors hover:border-[#c7dbf6] hover:bg-[#eef5ff]"
-                      to={`/m/${moduleItem.slug}`}
-                    >
-                      <div className="flex min-w-0 items-center gap-3">
-                        <div className="grid size-10 shrink-0 place-items-center rounded-2xl border border-[#d6dde8] bg-white text-[#31517c]">
-                          <Icon className="size-4" />
-                        </div>
-                        <div className="min-w-0">
-                          <p className="truncate text-sm font-medium text-[#243244]">
-                            {moduleItem.title}
-                          </p>
-                          <p className="truncate text-xs text-[#7b8596]">
-                            {moduleItem.subtitle}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex shrink-0 items-center gap-2">
-                        <Badge
-                          className="border-[#d8dee8] bg-white text-[#667085]"
-                          variant="outline"
-                        >
-                          {category.short}
-                        </Badge>
-                        <Badge
-                          className={
-                            statusCopy.variant === "success"
-                              ? "border-emerald-500/15 bg-emerald-500/10 text-emerald-700"
-                              : "border-[#d8dee8] bg-white text-[#667085]"
-                          }
-                          variant="outline"
-                        >
-                          {statusCopy.en}
-                        </Badge>
-                      </div>
-                    </Link>
-                  );
-                }
-
-                const Icon = entry.track.icon;
+              toolEntries.map((moduleItem) => {
+                const Icon = getModuleIcon(moduleItem.slug, moduleItem.category);
+                const category = getModuleCategoryCopy(moduleItem.category);
+                const statusCopy = getModuleStatusCopy(moduleItem.status);
 
                 return (
-                  <div
-                    key={entry.track.en}
-                    className="flex items-center justify-between gap-3 rounded-[0.95rem] border border-[#e2e0d9] bg-[#f9f8f5] px-3 py-3"
+                  <Link
+                    key={moduleItem.slug}
+                    className="group flex items-center justify-between gap-3 rounded-[0.95rem] border border-[#e2e0d9] bg-[#f9f8f5] px-3 py-3 transition-colors hover:border-[#c7dbf6] hover:bg-[#eef5ff]"
+                    to={`/m/${moduleItem.slug}`}
                   >
                     <div className="flex min-w-0 items-center gap-3">
-                      <div className="grid size-10 shrink-0 place-items-center rounded-2xl border border-[#e1dfd8] bg-white text-[#6f747b]">
+                      <div className="grid size-10 shrink-0 place-items-center rounded-2xl border border-[#d6dde8] bg-white text-[#31517c]">
                         <Icon className="size-4" />
                       </div>
                       <div className="min-w-0">
                         <p className="truncate text-sm font-medium text-[#243244]">
-                          {entry.track.en}
+                          {moduleItem.title}
                         </p>
-                        <p className="truncate text-xs text-[#7b8596]">{entry.track.cn}</p>
+                        <p className="truncate text-xs text-[#7b8596]">
+                          {moduleItem.subtitle}
+                        </p>
                       </div>
                     </div>
-                    <Badge className="border-[#e1dfd8] bg-white text-[#7b8596]" variant="outline">
-                      Reserved
-                    </Badge>
-                  </div>
+                    <div className="flex shrink-0 items-center gap-2">
+                      <Badge
+                        className="border-[#d8dee8] bg-white text-[#667085]"
+                        variant="outline"
+                      >
+                        {category.short}
+                      </Badge>
+                      <Badge
+                        className={
+                          statusCopy.variant === "success"
+                            ? "border-emerald-500/15 bg-emerald-500/10 text-emerald-700"
+                            : "border-[#d8dee8] bg-white text-[#667085]"
+                        }
+                        variant="outline"
+                      >
+                        {statusCopy.en}
+                      </Badge>
+                    </div>
+                  </Link>
                 );
               })
             ) : (
               <div className="rounded-[1rem] border border-dashed border-[#d8dee8] bg-white/80 px-4 py-5 text-sm leading-6 text-[#7b8596]">
-                当前筛选条件下没有匹配的工具入口。
+                当前关键字下没有匹配的模块入口。
               </div>
             )}
           </section>
@@ -375,7 +279,7 @@ export function HomePage() {
               <span>共 {toolEntries.length} 个入口</span>
             </div>
             <span className="text-[0.68rem] font-semibold text-[#4a6d9e]">
-              进入 Reader 后可返回主页
+              当前只保留 Reader 工作流
             </span>
           </section>
         </aside>

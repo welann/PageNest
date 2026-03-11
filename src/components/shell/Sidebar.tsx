@@ -15,11 +15,7 @@ import {
 } from "@components/ui/sheet";
 import { moduleCatalog } from "@modules/catalog";
 import { preloadModule } from "@modules/registry";
-import {
-  getModuleCategoryCopy,
-  getModuleIcon,
-  plannedWorkspaceTracks
-} from "@shared/ui/modulePresentation";
+import { getModuleCategoryCopy, getModuleIcon } from "@shared/ui/modulePresentation";
 import { cn } from "@shared/utils/cn";
 
 interface SidebarContentProps {
@@ -37,13 +33,13 @@ function SidebarContent({ onNavigate }: SidebarContentProps) {
         </div>
         <div>
           <div className="text-[0.68rem] font-semibold uppercase tracking-[0.22em] text-sidebar-foreground/58">
-            Private Research Desk
+            Private Reading Desk
           </div>
           <strong className="mt-1 block font-serif text-xl tracking-tight text-sidebar-foreground">
             PageNest / 页巢
           </strong>
           <p className="mt-2 max-w-xs text-sm leading-6 text-sidebar-foreground/68">
-            为阅读、研究与后续分析预留的一体化工作台。
+            围绕电子书阅读、词汇整理与导出流程整理的一体化工作台。
           </p>
         </div>
       </div>
@@ -130,33 +126,14 @@ function SidebarContent({ onNavigate }: SidebarContentProps) {
       </div>
 
       <div className="mt-auto space-y-4 rounded-[1.6rem] border border-sidebar-border bg-black/10 p-4">
-        <div>
+        <div className="space-y-2">
           <p className="text-[0.68rem] font-semibold uppercase tracking-[0.22em] text-sidebar-foreground/58">
-            Reserved Tracks
+            Reader Focus
           </p>
-          <div className="mt-3 grid gap-3">
-            {plannedWorkspaceTracks.slice(0, 2).map((track) => {
-              const Icon = track.icon;
-
-              return (
-                <div key={track.en} className="flex items-start gap-3">
-                  <div className="grid size-8 place-items-center rounded-xl border border-sidebar-border bg-sidebar-accent/45 text-sidebar-accent-foreground">
-                    <Icon className="size-4" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium text-sidebar-foreground">
-                      {track.en} / {track.cn}
-                    </p>
-                    <p className="mt-1 text-xs leading-5 text-sidebar-foreground/66">
-                      {track.description}
-                    </p>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+          <p className="text-sm leading-6 text-sidebar-foreground/70">
+            当前项目只保留 Ebook Reader，侧边导航和首页入口都会直接围绕阅读器展开。
+          </p>
         </div>
-
         <div className="flex flex-wrap gap-2">
           <Badge
             className="border-sidebar-border bg-transparent text-sidebar-foreground/84"
@@ -168,7 +145,7 @@ function SidebarContent({ onNavigate }: SidebarContentProps) {
             className="border-sidebar-border bg-transparent text-sidebar-foreground/84"
             variant="outline"
           >
-            Lazy Modules
+            Reader Only
           </Badge>
         </div>
       </div>

@@ -14,9 +14,9 @@ function getRouteMeta(pathname: string) {
   if (pathname === "/") {
     return {
       eyebrow: "Workspace / 工作台",
-      title: "Private Research Desk",
-      description: "统一进入阅读、研究与后续分析工作位的主壳层。",
-      badges: ["Cloudflare-first", "Code Catalog", "Operator Workspace"]
+      title: "Private Reading Desk",
+      description: "统一进入 Ebook Reader 与阅读数据工作流的主壳层。",
+      badges: ["Cloudflare-first", "Reader Workspace", "Operator Workspace"]
     };
   }
 
@@ -41,7 +41,7 @@ function getRouteMeta(pathname: string) {
   return {
     eyebrow: "Workspace / 工作台",
     title: "PageNest",
-    description: "私人研究工作台",
+    description: "私人阅读工作台",
     badges: ["Cloudflare-first", "Workspace"]
   };
 }
