@@ -54,10 +54,16 @@ export function AppShell() {
 
   if (isImmersiveRoute) {
     return (
-      <div className="min-h-screen px-3 py-3 sm:px-4 lg:px-5">
-        <main className="mx-auto w-full max-w-[1480px]">
-          <Outlet />
-        </main>
+      <div className="min-h-screen xl:grid xl:grid-cols-[16rem_minmax(0,1fr)]">
+        <Sidebar />
+        <div className="min-w-0 px-3 py-3 sm:px-4 lg:px-5">
+          <div className="mb-3 xl:hidden">
+            <MobileSidebarToggle />
+          </div>
+          <main className="w-full">
+            <Outlet />
+          </main>
+        </div>
       </div>
     );
   }

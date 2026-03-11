@@ -698,7 +698,10 @@ export default function EbookReaderView() {
           </div>
 
           <aside className="grid gap-3 xl:sticky xl:top-4 xl:self-start">
-            <section className="rounded-[0.95rem] border border-[#d9dee5] bg-white p-4">
+            <section
+              className="scroll-mt-4 rounded-[0.95rem] border border-[#d9dee5] bg-white p-4"
+              id="word-detail"
+            >
               <p className="text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-[#7b8596]">
                 Word Detail
               </p>
@@ -775,7 +778,10 @@ export default function EbookReaderView() {
               </div>
             </section>
 
-            <section className="rounded-[0.95rem] border border-[#d9dee5] bg-white p-4">
+            <section
+              className="scroll-mt-4 rounded-[0.95rem] border border-[#d9dee5] bg-white p-4"
+              id="reading-status"
+            >
               <p className="text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-[#7b8596]">
                 Reading Status
               </p>

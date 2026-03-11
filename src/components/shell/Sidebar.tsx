@@ -1,8 +1,15 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
-import { Menu } from "lucide-react";
+import {
+  BarChart3,
+  BookOpen,
+  Brain,
+  ChevronRight,
+  Hexagon,
+  Home,
+  Menu
+} from "lucide-react";
 
-import { Badge } from "@components/ui/badge";
 import { Button } from "@components/ui/button";
 import { ScrollArea } from "@components/ui/scroll-area";
 import {
@@ -13,140 +20,202 @@ import {
   SheetTitle,
   SheetTrigger
 } from "@components/ui/sheet";
-import { moduleCatalog } from "@modules/catalog";
-import { preloadModule } from "@modules/registry";
-import { getModuleCategoryCopy, getModuleIcon } from "@shared/ui/modulePresentation";
 import { cn } from "@shared/utils/cn";
+
+type SidebarLinkItem =
+  | {
+      href: string;
+      icon: typeof Home;
+      kind: "anchor";
+      label: string;
+    }
+  | {
+      icon: typeof Home;
+      kind: "route";
+      label: string;
+      to: string;
+    };
+
+interface SidebarSection {
+  items: SidebarLinkItem[];
+  label: string;
+}
 
 interface SidebarContentProps {
   onNavigate?: () => void;
 }
 
-function SidebarContent({ onNavigate }: SidebarContentProps) {
-  const HomeIcon = getModuleIcon("home", "reader");
+function SidebarLink({
+  item,
+  isActive,
+  onNavigate
+}: {
+  isActive: boolean;
+  item: SidebarLinkItem;
+  onNavigate?: () => void;
+}) {
+  const Icon = item.icon;
+  const className = cn(
+    "group flex items-center justify-between gap-3 rounded-[0.65rem] border px-2.5 py-2 text-sm transition-colors outline-none",
+    isActive
+      ? "border-[#e5e7eb] bg-[#f4f4f5] text-[#09090b]"
+      : "border-transparent text-[#18181b] hover:bg-[#f4f4f5] focus-visible:bg-[#f4f4f5]"
+  );
+
+  const content = (
+    <>
+      <div className="flex min-w-0 items-center gap-2.5">
+        <Icon className="size-4 text-[#52525b]" />
+        <span className="truncate">{item.label}</span>
+      </div>
+      <ChevronRight className="size-4 text-[#a1a1aa]" />
+    </>
+  );
+
+  if (item.kind === "route") {
+    return (
+      <NavLink
+        className={className}
+        onClick={onNavigate}
+        to={item.to}
+      >
+        {content}
+      </NavLink>
+    );
+  }
 
   return (
-    <div className="flex h-full flex-col gap-8 px-5 py-6">
-      <div className="flex items-start gap-4">
-        <div className="grid size-11 place-items-center rounded-2xl border border-sidebar-border bg-sidebar-accent/90 text-sm font-semibold tracking-[0.28em] text-sidebar-accent-foreground shadow-lg shadow-black/10">
-          PN
-        </div>
-        <div>
-          <div className="text-[0.68rem] font-semibold uppercase tracking-[0.22em] text-sidebar-foreground/58">
-            Private Reading Desk
-          </div>
-          <strong className="mt-1 block font-serif text-xl tracking-tight text-sidebar-foreground">
-            PageNest / 页巢
-          </strong>
-          <p className="mt-2 max-w-xs text-sm leading-6 text-sidebar-foreground/68">
-            围绕电子书阅读、词汇整理与导出流程整理的一体化工作台。
-          </p>
-        </div>
-      </div>
+    <a className={className} href={item.href} onClick={onNavigate}>
+      {content}
+    </a>
+  );
+}
 
-      <div className="space-y-3">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <p className="text-[0.68rem] font-semibold uppercase tracking-[0.22em] text-sidebar-foreground/58">
-              Workspace Index
-            </p>
-            <p className="mt-1 text-sm text-sidebar-foreground/72">工作区目录与模块入口</p>
-          </div>
-          <Badge
-            className="border-sidebar-border bg-sidebar-accent/60 text-sidebar-accent-foreground"
-            variant="outline"
-          >
-            {moduleCatalog.length} Modules
-          </Badge>
-        </div>
+function SidebarContent({ onNavigate }: SidebarContentProps) {
+  const location = useLocation();
+  const isHome = location.pathname === "/";
+  const isReader = location.pathname === "/m/ebook-reader";
 
-        <nav className="grid gap-2">
-          <NavLink
-            className={({ isActive }) =>
-              cn(
-                "group rounded-[1.35rem] border px-3.5 py-3 transition-colors outline-none",
-                isActive
-                  ? "border-sidebar-border bg-sidebar-accent text-sidebar-accent-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.18)]"
-                  : "border-transparent text-sidebar-foreground/76 hover:border-sidebar-border hover:bg-sidebar-accent/45 hover:text-sidebar-foreground focus-visible:border-sidebar-border focus-visible:bg-sidebar-accent/45 focus-visible:text-sidebar-foreground"
-              )
+  const sections = useMemo<SidebarSection[]>(() => {
+    if (isHome) {
+      return [
+        {
+          label: "工坊导航",
+          items: [
+            {
+              kind: "route",
+              label: "工坊主页",
+              icon: Home,
+              to: "/"
             }
-            end
-            onClick={onNavigate}
-            to="/"
-          >
-            <div className="flex items-center gap-3">
-              <div className="grid size-10 place-items-center rounded-2xl border border-current/12 bg-black/10">
-                <HomeIcon className="size-4" />
-              </div>
-              <div className="min-w-0">
-                <div className="text-sm font-medium">Workspace / 工作台</div>
-                <div className="truncate text-xs text-current/70">入口总览与近期活动</div>
-              </div>
-            </div>
-          </NavLink>
+          ]
+        }
+      ];
+    }
 
-          {moduleCatalog.map((moduleItem) => {
-            const Icon = getModuleIcon(moduleItem.slug, moduleItem.category);
+    if (isReader) {
+      return [
+        {
+          label: "阅读工作台",
+          items: [
+            {
+              kind: "route",
+              label: "Ebook Reader",
+              icon: BookOpen,
+              to: "/m/ebook-reader"
+            }
+          ]
+        },
+        {
+          label: "学习流程",
+          items: [
+            {
+              kind: "anchor",
+              label: "词汇复盘",
+              icon: Brain,
+              href: "#word-detail"
+            },
+            {
+              kind: "anchor",
+              label: "阅读统计",
+              icon: BarChart3,
+              href: "#reading-status"
+            }
+          ]
+        }
+      ];
+    }
 
-            return (
-              <NavLink
-                key={moduleItem.slug}
-                className={({ isActive }) =>
-                  cn(
-                    "group rounded-[1.35rem] border px-3.5 py-3 transition-colors outline-none",
-                    isActive
-                      ? "border-sidebar-border bg-sidebar-accent text-sidebar-accent-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.18)]"
-                      : "border-transparent text-sidebar-foreground/76 hover:border-sidebar-border hover:bg-sidebar-accent/45 hover:text-sidebar-foreground focus-visible:border-sidebar-border focus-visible:bg-sidebar-accent/45 focus-visible:text-sidebar-foreground"
-                  )
-                }
-                onClick={onNavigate}
-                onMouseEnter={() => {
-                  preloadModule(moduleItem.slug);
-                }}
-                onFocus={() => {
-                  preloadModule(moduleItem.slug);
-                }}
-                to={`/m/${moduleItem.slug}`}
-              >
-                <div className="flex items-center gap-3">
-                  <div className="grid size-10 place-items-center rounded-2xl border border-current/12 bg-black/10">
-                    <Icon className="size-4" />
-                  </div>
-                  <div className="min-w-0">
-                    <div className="text-sm font-medium">{moduleItem.title}</div>
-                    <div className="truncate text-xs text-current/70">
-                      {getModuleCategoryCopy(moduleItem.category).cn}
-                    </div>
-                  </div>
-                </div>
-              </NavLink>
-            );
-          })}
-        </nav>
+    return [
+      {
+        label: "工坊导航",
+        items: [
+          {
+            kind: "route",
+            label: "工坊主页",
+            icon: Home,
+            to: "/"
+          }
+        ]
+      }
+    ];
+  }, [isHome, isReader]);
+
+  const footerCopy = isReader
+    ? {
+        name: "Ebook Workspace",
+        subtitle: "solo mode"
+      }
+    : {
+        name: "Arc Dove",
+        subtitle: "research working head"
+      };
+
+  return (
+    <div className="flex h-full flex-col gap-4 bg-[#fafafa] px-2 py-2 text-[#09090b]">
+      {isReader ? (
+        <div className="flex items-center gap-2 rounded-md px-2 py-2">
+          <div className="grid size-8 place-items-center rounded-[0.65rem] border border-[#d4d4d8] bg-[#f4f4f5]">
+            <Hexagon className="size-4 text-[#18181b]" />
+          </div>
+          <div className="min-w-0">
+            <p className="truncate text-sm font-medium">PageNest</p>
+          </div>
+        </div>
+      ) : null}
+
+      <div className="flex min-h-0 flex-1 flex-col gap-1.5">
+        {sections.map((section) => (
+          <div key={section.label} className="grid gap-0.5">
+            <div className="px-2 py-2 text-xs font-medium text-[#737373]">{section.label}</div>
+            {section.items.map((item) => {
+              const isActive =
+                item.kind === "route"
+                  ? location.pathname === item.to
+                  : location.hash === item.href;
+
+              return (
+                <SidebarLink
+                  isActive={isActive}
+                  item={item}
+                  key={`${section.label}-${item.label}`}
+                  onNavigate={onNavigate}
+                />
+              );
+            })}
+          </div>
+        ))}
       </div>
 
-      <div className="mt-auto space-y-4 rounded-[1.6rem] border border-sidebar-border bg-black/10 p-4">
-        <div className="space-y-2">
-          <p className="text-[0.68rem] font-semibold uppercase tracking-[0.22em] text-sidebar-foreground/58">
-            Reader Focus
-          </p>
-          <p className="text-sm leading-6 text-sidebar-foreground/70">
-            当前项目只保留 Ebook Reader，侧边导航和首页入口都会直接围绕阅读器展开。
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Badge
-            className="border-sidebar-border bg-transparent text-sidebar-foreground/84"
-            variant="outline"
-          >
-            Cloudflare-first
-          </Badge>
-          <Badge
-            className="border-sidebar-border bg-transparent text-sidebar-foreground/84"
-            variant="outline"
-          >
-            Reader Only
-          </Badge>
+      <div className="rounded-[0.7rem] border border-[#e4e4e7] bg-[#fafafa] px-2 py-2">
+        <div className="flex items-center gap-2">
+          <div className="grid size-10 place-items-center rounded-full border border-[#d4d4d8] bg-white text-xs font-semibold text-[#18181b]">
+            PN
+          </div>
+          <div className="min-w-0">
+            <p className="truncate text-sm font-medium">{footerCopy.name}</p>
+            <p className="truncate text-xs text-[#737373]">{footerCopy.subtitle}</p>
+          </div>
         </div>
       </div>
     </div>
@@ -155,7 +224,7 @@ function SidebarContent({ onNavigate }: SidebarContentProps) {
 
 export function Sidebar() {
   return (
-    <aside className="hidden border-r border-border/70 bg-sidebar text-sidebar-foreground xl:block">
+    <aside className="hidden h-screen border-r border-[#e4e4e7] bg-[#fafafa] xl:block xl:w-64">
       <ScrollArea className="h-screen">
         <SidebarContent />
       </ScrollArea>
@@ -169,23 +238,23 @@ export function MobileSidebarToggle() {
 
   useEffect(() => {
     setOpen(false);
-  }, [location.pathname]);
+  }, [location.hash, location.pathname]);
 
   return (
     <Sheet onOpenChange={setOpen} open={open}>
       <SheetTrigger asChild>
-        <Button className="xl:hidden" size="icon" variant="outline">
+        <Button className="rounded-[0.8rem]" size="icon" variant="outline">
           <Menu className="size-4" />
           <span className="sr-only">Open workspace navigation</span>
         </Button>
       </SheetTrigger>
       <SheetContent
-        className="w-[min(22rem,92vw)] border-border/80 bg-sidebar p-0 text-sidebar-foreground"
+        className="w-[min(18rem,92vw)] border-[#e4e4e7] bg-[#fafafa] p-0 text-[#09090b]"
         side="left"
       >
         <SheetHeader className="sr-only">
           <SheetTitle>Workspace Navigation</SheetTitle>
-          <SheetDescription>Module and workspace entry points.</SheetDescription>
+          <SheetDescription>Reader workspace entry points and page sections.</SheetDescription>
         </SheetHeader>
         <ScrollArea className="h-full">
           <SidebarContent
