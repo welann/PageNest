@@ -64,11 +64,13 @@ code {
 .app-shell {
   display: grid;
   min-height: 100vh;
-  grid-template-columns: 280px 1fr;
+  grid-template-columns: 280px minmax(0, 1fr);
+  align-items: start;
 }
 
 .app-shell__main {
   min-width: 0;
+  min-height: 100vh;
   padding: 2rem;
 }
 
@@ -79,10 +81,16 @@ code {
 }
 
 .sidebar {
+  position: sticky;
+  top: 0;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
   gap: 1.75rem;
+  min-height: 100vh;
+  max-height: 100vh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
   padding: 2rem 1.5rem;
   border-right: 1px solid var(--border);
   background: rgba(30, 42, 54, 0.92);
@@ -116,6 +124,7 @@ code {
 .sidebar__nav {
   display: grid;
   gap: 0.55rem;
+  align-content: start;
 }
 
 .sidebar__link {
@@ -137,6 +146,11 @@ code {
   background: rgba(255, 255, 255, 0.08);
   color: white;
   transform: translateX(2px);
+}
+
+.sidebar__footer {
+  margin-top: auto;
+  padding-top: 0.5rem;
 }
 
 .topbar {
@@ -369,6 +383,10 @@ code {
   }
 
   .sidebar {
+    position: static;
+    min-height: auto;
+    max-height: none;
+    overflow: visible;
     border-right: 0;
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   }
@@ -376,6 +394,26 @@ code {
   .split-panel,
   .hero-summary {
     grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-height: 760px) and (min-width: 1041px) {
+  .sidebar {
+    gap: 1.1rem;
+    padding: 1.25rem 1rem;
+  }
+
+  .sidebar__brand {
+    gap: 0.75rem;
+  }
+
+  .sidebar__brand p,
+  .sidebar__footer p {
+    font-size: 0.85rem;
+  }
+
+  .sidebar__link {
+    padding: 0.72rem 0.85rem;
   }
 }
 
@@ -393,4 +431,3 @@ code {
     grid-template-columns: 1fr;
   }
 }
-

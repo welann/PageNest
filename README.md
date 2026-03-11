@@ -72,3 +72,21 @@ Notes:
 - New modules are added under `src/modules/<slug>`
 - Module views are lazy-loaded to keep the shell small
 - SQL migrations are hand-authored in `db/migrations/` for now
+
+## Modules
+
+### Ebook Reader
+
+The Ebook Reader module is a Cloudflare-backed EPUB reading workflow for English novel study.
+
+Current capabilities:
+
+- import EPUB books into R2 and track progress in D1
+- preload a default ECDICT subset plus user-imported dictionary data
+- detect unknown words on the current page with lemma-based matching
+- inspect a clicked or selected word in the side panel
+- mark words or the whole current page as learned
+- save explicit unknown words and export them as server-generated CSV files
+- adjust reader font size and automatically reflow pagination
+
+Detailed module documentation: [src/modules/ebook-reader/README.md](/Users/welann/Documents/code/daily/PageNest/src/modules/ebook-reader/README.md)

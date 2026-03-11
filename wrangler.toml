@@ -8,7 +8,7 @@ APP_ENV = "development"
 [[d1_databases]]
 binding = "DB"
 database_name = "pagenest"
-database_id = "REPLACE_WITH_D1_DATABASE_ID"
+database_id = "ba7df79c-b2ec-4c9b-9db4-1897f43ea4f2"
 migrations_dir = "db/migrations"
 
 [[r2_buckets]]

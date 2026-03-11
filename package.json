@@ -10,10 +10,13 @@
     "cf:dev": "npm run build && wrangler pages dev dist",
     "cf:deploy": "npm run build && wrangler pages deploy dist",
     "check": "tsc -p tsconfig.app.json --noEmit && tsc -p tsconfig.node.json --noEmit",
-    "db:migrate:local": "wrangler d1 migrations apply pagenest --local"
+    "db:migrate:local": "wrangler d1 migrations apply pagenest --local",
+    "dictionary:build-default": "node scripts/build_default_ecdict.mjs /tmp/ecdict.csv src/shared/reader/default-ecdict.json"
   },
   "dependencies": {
     "drizzle-orm": "0.45.1",
+    "epubjs": "^0.3.93",
+    "jszip": "^3.10.1",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "react-router-dom": "7.13.1"
