@@ -9,7 +9,7 @@ import {
   Menu
 } from "lucide-react";
 
-import { useModuleShell } from "@components/shell/moduleShell";
+import { useActiveSidebarSlot } from "@components/shell/moduleShell";
 import { Button } from "@components/ui/button";
 import { ScrollArea } from "@components/ui/scroll-area";
 import {
@@ -73,7 +73,7 @@ function SidebarNavLink({
 
 function SidebarContent({ onNavigate }: SidebarContentProps) {
   const location = useLocation();
-  const { activeSidebarSlot } = useModuleShell();
+  const activeSidebarSlot = useActiveSidebarSlot();
   const isReader = location.pathname === "/m/ebook-reader";
 
   const moduleLinks = useMemo(

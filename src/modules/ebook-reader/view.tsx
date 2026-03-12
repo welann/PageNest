@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
-import { useModuleShell } from "@components/shell/moduleShell";
+import { useSetActiveSidebarSlot } from "@components/shell/moduleShell";
 import { Button } from "@components/ui/button";
 import { ReaderSidebarPanel } from "@modules/ebook-reader/ReaderSidebar";
 import { ReaderViewport } from "@modules/ebook-reader/ReaderViewport";
@@ -111,7 +111,7 @@ function triggerFileDialog(input: HTMLInputElement | null) {
 }
 
 export default function EbookReaderView() {
-  const { setActiveSidebarSlot } = useModuleShell();
+  const setActiveSidebarSlot = useSetActiveSidebarSlot();
   const [bootstrap, setBootstrap] = useState<ReaderBootstrap>(emptyBootstrap);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [errorMessage, setErrorMessage] = useState("");
