@@ -4,6 +4,7 @@ export function Toaster(props: ToasterProps) {
   return (
     <Sonner
       className="toaster group"
+      duration={1000}
       position="bottom-right"
       richColors
       toastOptions={{
