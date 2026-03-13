@@ -1,6 +1,7 @@
 import type { LucideIcon } from "lucide-react";
 import {
   BookOpenText,
+  FileSearch,
   Home,
   LibraryBig
 } from "lucide-react";
@@ -37,7 +38,8 @@ const statusCopy = {
 
 const moduleIconMap: Record<string, LucideIcon> = {
   home: Home,
-  "ebook-reader": LibraryBig
+  "ebook-reader": LibraryBig,
+  "content-extractor": FileSearch
 };
 
 export function getModuleCategoryCopy(category: ModuleCategory) {

@@ -1,4 +1,5 @@
 import type { PageModule } from "@modules/contracts";
+import { contentExtractorManifest } from "@modules/content-extractor/manifest";
 import { ebookReaderManifest } from "@modules/ebook-reader/manifest";
 
 function defineModule(
@@ -12,7 +13,8 @@ function defineModule(
 }
 
 export const moduleRegistry = [
-  defineModule(ebookReaderManifest, () => import("@modules/ebook-reader/view"))
+  defineModule(ebookReaderManifest, () => import("@modules/ebook-reader/view")),
+  defineModule(contentExtractorManifest, () => import("@modules/content-extractor/view"))
 ] as const;
 
 const moduleMap = new Map(

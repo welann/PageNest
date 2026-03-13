@@ -1,6 +1,6 @@
 # PageNest
 
-PageNest is a private, Cloudflare-first workspace focused on the `ebook-reader` module and its supporting reading workflow. This scaffold favors maintainability over feature count:
+PageNest is a private, Cloudflare-first workspace focused on reading and extraction workflows, currently centered on the `ebook-reader` and `content-extractor` modules. This scaffold favors maintainability over feature count:
 
 - `React + Vite + Tailwind CSS` for a lean client shell
 - `shadcn/ui` for the shared shell and surface component system
@@ -93,8 +93,27 @@ Current capabilities:
 - inspect a clicked or selected word in the shared sidebar submenu
 - mark words or the whole current page as learned
 - save explicit unknown words and export them as server-generated CSV files
+- copy only the newly added unknown words since the previous clipboard export point directly into the clipboard
 - preserve explicitly saved unknown words when bulk-marking the current page as learned, while still allowing manual single-word learning to clear them
 - adjust reader font size and automatically reflow pagination
 - update imported books, dictionary data, learned words, unknown-word state, and export metadata immediately in the UI without requiring a page refresh
 
 Detailed module documentation: [src/modules/ebook-reader/README.md](./src/modules/ebook-reader/README.md)
+
+### Content Extractor
+
+The Content Extractor module is a shared-library extraction desk for EPUB and PDF files. It uploads EPUB/PDF into the existing library, analyzes EPUB outlines or PDF bookmarks/page ranges on the client, previews structured extracted content, and copies the generated text without persisting extraction history.
+
+Current capabilities:
+
+- upload EPUB and PDF files into the shared library from the module itself
+- browse and filter existing EPUB/PDF library items inside the module
+- extract EPUB content by outline / table of contents
+- extract bookmarked PDF content by outline ranges
+- extract PDF content by multiple normalized page ranges
+- merge overlapping page ranges before extraction
+- preview extracted headings, paragraphs, list items, and page/section separators in a paper-style result desk
+- warn when the selected PDF range is empty or likely scanned instead of silently failing
+- keep extraction results in the current session only while still allowing clipboard export
+
+Detailed module documentation: [src/modules/content-extractor/README.md](./src/modules/content-extractor/README.md)

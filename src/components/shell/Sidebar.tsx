@@ -5,7 +5,6 @@ import {
   ChevronRight,
   Hexagon,
   Home,
-  LibraryBig,
   Menu
 } from "lucide-react";
 
@@ -20,6 +19,8 @@ import {
   SheetTitle,
   SheetTrigger
 } from "@components/ui/sheet";
+import { moduleCatalog } from "@modules/catalog";
+import { getModuleIcon } from "@shared/ui/modulePresentation";
 import { cn } from "@shared/utils/cn";
 
 interface SidebarContentProps {
@@ -74,18 +75,19 @@ function SidebarNavLink({
 function SidebarContent({ onNavigate }: SidebarContentProps) {
   const location = useLocation();
   const activeSidebarSlot = useActiveSidebarSlot();
-  const isReader = location.pathname === "/m/ebook-reader";
+  const activeModuleSlug =
+    location.pathname.startsWith("/m/") ? decodeURIComponent(location.pathname.slice(3)) : null;
 
   const moduleLinks = useMemo(
-    () => [
-      {
-        icon: LibraryBig,
-        label: "Ebook Reader",
-        subtitle: isReader ? "当前模块" : "阅读与词汇工作台",
-        to: "/m/ebook-reader"
-      }
-    ],
-    [isReader]
+    () =>
+      moduleCatalog.map((moduleItem) => ({
+        icon: getModuleIcon(moduleItem.slug, moduleItem.category),
+        label: moduleItem.title,
+        subtitle:
+          activeModuleSlug === moduleItem.slug ? "当前模块" : moduleItem.subtitle,
+        to: `/m/${moduleItem.slug}`
+      })),
+    [activeModuleSlug]
   );
 
   return (
@@ -134,7 +136,9 @@ function SidebarContent({ onNavigate }: SidebarContentProps) {
               to={item.to}
             />
 
-            {location.pathname === item.to && activeSidebarSlot ? (
+            {location.pathname === item.to &&
+            activeSidebarSlot &&
+            activeSidebarSlot.moduleSlug === activeModuleSlug ? (
               <div className="ml-4 rounded-[1.15rem] border border-[#e1d7c5] bg-[linear-gradient(180deg,#fffdfa_0%,#f8f4ed_100%)] p-3 shadow-[0_18px_36px_-34px_rgba(82,62,40,0.42)]">
                 <div className="mb-3 flex items-center justify-between gap-3 border-b border-[#e6dccd] pb-3">
                   <div>
