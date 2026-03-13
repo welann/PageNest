@@ -35,6 +35,14 @@ describe("serializeExtractorResult", () => {
         { type: "page-break", label: "第 20 页", pageNumber: 20 },
         { type: "heading", level: 2, text: "Intro" },
         { type: "paragraph", text: "First paragraph." },
+        {
+          type: "image",
+          assetId: "pdf:page:20",
+          alt: "Page 20 image",
+          caption: "Page 20 image",
+          mimeType: "image/png",
+          pageNumber: 20
+        },
         { type: "list-item", text: "One item" },
         { type: "quote", text: "Quoted text" }
       ],
@@ -48,6 +56,7 @@ describe("serializeExtractorResult", () => {
     expect(serializeExtractorResult(result)).toContain("## 页码 20-21");
     expect(serializeExtractorResult(result)).toContain("--- 第 20 页 ---");
     expect(serializeExtractorResult(result)).toContain("## Intro");
+    expect(serializeExtractorResult(result)).toContain("[Image] Page 20 image");
     expect(serializeExtractorResult(result)).toContain("- One item");
     expect(serializeExtractorResult(result)).toContain("> Quoted text");
   });

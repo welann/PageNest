@@ -1,4 +1,4 @@
-import { Copy, Eraser, FileSearch, Layers3, Upload } from "lucide-react";
+import { Copy, Eraser, ExternalLink, FileSearch, Layers3, Settings2, TextQuote, Upload } from "lucide-react";
 
 import { Badge } from "@components/ui/badge";
 import { Button } from "@components/ui/button";
@@ -7,15 +7,27 @@ interface ExtractorSidebarPanelProps {
   currentDocumentTitle: string;
   modeLabel: string;
   pageCountLabel: string;
-  pendingAction: "analyze" | "copy" | "extract" | "upload" | null;
+  pendingAction:
+    | "analyze"
+    | "copy"
+    | "extract"
+    | "telegraph-publish"
+    | "telegraph-save"
+    | "upload"
+    | null;
   resultAvailable: boolean;
   resultCharCount: number;
   resultGeneratedLabel: string;
   selectionCountLabel: string;
   statusLabel: string;
+  telegraphConfigured: boolean;
+  telegraphPublishLabel: string;
+  telegraphPublishUrl: string | null;
   warnings: string[];
   onClearResult: () => void;
   onCopyResult: () => void;
+  onOpenTelegraphSettings: () => void;
+  onPublishToTelegraph: () => void;
   onUpload: () => void;
 }
 
@@ -46,9 +58,14 @@ export function ExtractorSidebarPanel({
   resultGeneratedLabel,
   selectionCountLabel,
   statusLabel,
+  telegraphConfigured,
+  telegraphPublishLabel,
+  telegraphPublishUrl,
   warnings,
   onClearResult,
   onCopyResult,
+  onOpenTelegraphSettings,
+  onPublishToTelegraph,
   onUpload
 }: ExtractorSidebarPanelProps) {
   return (
@@ -109,6 +126,25 @@ export function ExtractorSidebarPanel({
             <Eraser className="size-4" />
             清空结果
           </Button>
+
+          <Button
+            className="justify-start rounded-[0.95rem] border-[#d8e2f4] bg-[#f4f8ff] text-[#27466d] hover:bg-[#eaf2ff]"
+            onClick={onOpenTelegraphSettings}
+            variant="outline"
+          >
+            <Settings2 className="size-4" />
+            Telegraph 设置
+          </Button>
+
+          <Button
+            className="justify-start rounded-[0.95rem] border-[#d8e2f4] bg-[#f4f8ff] text-[#27466d] hover:bg-[#eaf2ff]"
+            disabled={!resultAvailable || !telegraphConfigured}
+            onClick={onPublishToTelegraph}
+            variant="outline"
+          >
+            <TextQuote className="size-4" />
+            发布到 Telegraph
+          </Button>
         </div>
       </section>
 
@@ -142,6 +178,24 @@ export function ExtractorSidebarPanel({
             <Layers3 className="size-3.5 text-[#60728c]" />
             <span>{resultGeneratedLabel}</span>
           </div>
+        </div>
+
+        <div className="mt-3 rounded-[0.95rem] border border-[#ecf0f7] bg-[#fbfcfe] px-3 py-3 text-xs leading-5 text-[#6b7280]">
+          <div className="flex items-center justify-between gap-3">
+            <span>{telegraphConfigured ? "Telegraph 已配置" : "Telegraph 未配置"}</span>
+            {telegraphPublishUrl ? (
+              <a
+                className="inline-flex items-center gap-1 text-[#27466d] underline underline-offset-4"
+                href={telegraphPublishUrl}
+                rel="noreferrer"
+                target="_blank"
+              >
+                打开
+                <ExternalLink className="size-3.5" />
+              </a>
+            ) : null}
+          </div>
+          <p className="mt-2">{telegraphPublishLabel}</p>
         </div>
       </section>
 

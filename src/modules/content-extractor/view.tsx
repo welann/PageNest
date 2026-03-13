@@ -7,14 +7,17 @@ import {
   useState
 } from "react";
 import {
-  BookOpenText,
   ChevronRight,
   Copy,
+  ExternalLink,
   FileStack,
+  Globe,
   LoaderCircle,
   Search,
+  Settings2,
   Sparkles,
   SquareSplitHorizontal,
+  TextQuote,
   Upload
 } from "lucide-react";
 import { toast } from "sonner";
@@ -23,9 +26,19 @@ import { useSetActiveSidebarSlot } from "@components/shell/moduleShell";
 import { Badge } from "@components/ui/badge";
 import { Button } from "@components/ui/button";
 import { Input } from "@components/ui/input";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle
+} from "@components/ui/sheet";
+import { EpubPreviewSurface } from "@modules/content-extractor/EpubPreviewSurface";
 import { ExtractorSidebarPanel } from "@modules/content-extractor/ExtractorSidebar";
+import { buildTelegraphPublishRequest } from "@modules/content-extractor/telegraphPublish";
 import { analyzeEpubArchive, extractEpubByOutline, type ParsedEpubDocument } from "@shared/extractor/epubSelection";
-import { parseEpubArchive } from "@shared/extractor/epubArchive";
+import { normalizeEpubSectionHref, parseEpubArchive } from "@shared/extractor/epubArchive";
 import { type ParsedPdfDocument, analyzePdfDocument, extractPdfByOutline, extractPdfByPageRanges } from "@shared/extractor/pdf";
 import {
   collectOutlineLabels,
@@ -39,11 +52,19 @@ import type {
   ExtractorMode,
   ExtractorOutlineNode,
   ExtractorResult,
-  ExtractorResultBlock
+  ExtractorResultBlock,
+  ExtractorTelegraphPublishResult,
+  ExtractorTelegraphSettingsStatus
 } from "@shared/types/extractor";
 import { formatRelativeTime } from "@shared/utils/format";
 import { getReaderBookFileUrl } from "@services/api/reader";
-import { getExtractorBootstrap, importExtractorDocument } from "@services/api/extractor";
+import {
+  getExtractorBootstrap,
+  getExtractorTelegraphSettings,
+  importExtractorDocument,
+  publishExtractorToTelegraph,
+  saveExtractorTelegraphSettings
+} from "@services/api/extractor";
 
 type PreparedDocument =
   | {
@@ -62,6 +83,14 @@ const emptyBootstrap: ExtractorBootstrap = {
     r2: false,
     mode: "loading"
   }
+};
+
+const emptyTelegraphSettings: ExtractorTelegraphSettingsStatus = {
+  configured: false,
+  shortName: null,
+  authorName: null,
+  authorUrl: null,
+  updatedAt: null
 };
 
 function SectionHeading({
@@ -129,7 +158,13 @@ function OutlineTree({
   );
 }
 
-function ResultBlockView({ block }: { block: ExtractorResultBlock }) {
+function ResultBlockView({
+  block,
+  imageUrl
+}: {
+  block: ExtractorResultBlock;
+  imageUrl?: string;
+}) {
   if (block.type === "section-break") {
     return (
       <div className="sticky top-0 z-10 bg-[#fffdf8]/95 py-2 backdrop-blur">
@@ -172,6 +207,46 @@ function ResultBlockView({ block }: { block: ExtractorResultBlock }) {
     return <p className="text-sm leading-7 text-[#334155]">• {block.text}</p>;
   }
 
+  if (block.type === "image") {
+    if (imageUrl) {
+      return (
+        <figure className="grid gap-3 overflow-hidden rounded-[1.2rem] border border-[#e2d9cb] bg-[#fffaf2] p-3 sm:p-4">
+          <div className="overflow-hidden rounded-[0.95rem] border border-[#eadfce] bg-white">
+            <img
+              alt={block.alt || block.caption || block.sourceLabel || "EPUB image"}
+              className="max-h-[32rem] w-full object-contain"
+              loading="lazy"
+              src={imageUrl}
+            />
+          </div>
+          {block.caption ? (
+            <figcaption className="text-sm leading-6 text-[#6f5a40]">{block.caption}</figcaption>
+          ) : null}
+        </figure>
+      );
+    }
+
+    return (
+      <figure className="rounded-[1rem] border border-[#e2d9cb] bg-[#fdf8f1] px-4 py-4 text-[#6f5a40]">
+        <div className="flex items-center gap-3">
+          <div className="inline-flex size-9 items-center justify-center rounded-full border border-[#e7dccb] bg-white text-[#8b6b47]">
+            <Globe className="size-4" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-[#3f3a33]">
+              {block.caption || block.alt || block.sourceLabel || "Image block"}
+            </p>
+            <p className="mt-1 text-xs text-[#8b7b67]">
+              {typeof block.pageNumber === "number"
+                ? `第 ${block.pageNumber} 页图像会在发布时渲染并上传到 Telegraph。`
+                : "EPUB 图片已在上方原始章节预览中展示，也会按顺序上传到 Telegraph。"}
+            </p>
+          </div>
+        </div>
+      </figure>
+    );
+  }
+
   return <p className="text-sm leading-7 text-[#334155]">{block.text}</p>;
 }
 
@@ -192,8 +267,24 @@ export default function ContentExtractorView() {
   const [outlineSelection, setOutlineSelection] = useState<string[]>([]);
   const [pageRangeInputs, setPageRangeInputs] = useState<string[]>([""]);
   const [result, setResult] = useState<ExtractorResult | null>(null);
-  const [pendingAction, setPendingAction] = useState<"analyze" | "copy" | "extract" | "upload" | null>(null);
+  const [pendingAction, setPendingAction] = useState<
+    "analyze" | "copy" | "extract" | "telegraph-publish" | "telegraph-save" | "upload" | null
+  >(null);
   const [query, setQuery] = useState("");
+  const [telegraphSettings, setTelegraphSettings] =
+    useState<ExtractorTelegraphSettingsStatus>(emptyTelegraphSettings);
+  const [telegraphSettingsError, setTelegraphSettingsError] = useState("");
+  const [telegraphSettingsStatus, setTelegraphSettingsStatus] = useState<"error" | "loading" | "ready">("loading");
+  const [telegraphSheetOpen, setTelegraphSheetOpen] = useState(false);
+  const [telegraphForm, setTelegraphForm] = useState({
+    accessToken: "",
+    authorName: "",
+    authorUrl: "",
+    shortName: ""
+  });
+  const [telegraphPublishResult, setTelegraphPublishResult] =
+    useState<ExtractorTelegraphPublishResult | null>(null);
+  const [epubSourceBuffer, setEpubSourceBuffer] = useState<ArrayBuffer | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const analysisRequestRef = useRef(0);
@@ -223,12 +314,30 @@ export default function ContentExtractorView() {
     () => bootstrap.documents.find((document) => document.id === selectedDocumentId) ?? null,
     [bootstrap.documents, selectedDocumentId]
   );
+  const epubDocument = preparedDocument?.kind === "epub" ? preparedDocument.value : null;
   const analysis = preparedDocument?.value.analysis ?? null;
   const selectedOutlineIds = useMemo(() => new Set(outlineSelection), [outlineSelection]);
   const pageRangeState = useMemo(
     () => parsePageRangeInputs(pageRangeInputs, analysis?.pageCount ?? null),
     [analysis?.pageCount, pageRangeInputs]
   );
+  const epubPreviewSections = useMemo(() => {
+    if (!epubDocument || !result?.sourceRefs?.length) {
+      return [];
+    }
+
+    const sectionsByHref = new Map(
+      epubDocument.archive.sections.map((section) => [normalizeEpubSectionHref(section.href), section])
+    );
+
+    return result.sourceRefs
+      .map((href) => sectionsByHref.get(normalizeEpubSectionHref(href)))
+      .filter((section): section is (typeof epubDocument.archive.sections)[number] => Boolean(section))
+      .map((section) => ({
+        href: normalizeEpubSectionHref(section.href),
+        title: section.title
+      }));
+  }, [epubDocument, result?.sourceRefs]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -266,6 +375,47 @@ export default function ContentExtractorView() {
   }, []);
 
   useEffect(() => {
+    const controller = new AbortController();
+
+    async function loadTelegraphSettings() {
+      try {
+        const settings = await getExtractorTelegraphSettings(controller.signal);
+
+        if (controller.signal.aborted) {
+          return;
+        }
+
+        startTransition(() => {
+          setTelegraphSettings(settings);
+          setTelegraphSettingsStatus("ready");
+          setTelegraphSettingsError("");
+          setTelegraphForm((current) => ({
+            accessToken: current.accessToken,
+            authorName: settings.authorName ?? "",
+            authorUrl: settings.authorUrl ?? "",
+            shortName: settings.shortName ?? ""
+          }));
+        });
+      } catch (error) {
+        if (controller.signal.aborted) {
+          return;
+        }
+
+        startTransition(() => {
+          setTelegraphSettingsStatus("error");
+          setTelegraphSettingsError(error instanceof Error ? error.message : "Telegraph 配置状态加载失败。");
+        });
+      }
+    }
+
+    void loadTelegraphSettings();
+
+    return () => {
+      controller.abort();
+    };
+  }, []);
+
+  useEffect(() => {
     if (!bootstrap.documents.length) {
       setSelectedDocumentId(null);
       return;
@@ -282,10 +432,22 @@ export default function ContentExtractorView() {
     setOutlineSelection([]);
     setPageRangeInputs([""]);
     setResult(null);
+    setTelegraphPublishResult(null);
     setPreparedDocument(null);
+    setEpubSourceBuffer(null);
     setAnalysisStatus(selectedDocument ? "loading" : "idle");
     setAnalysisError("");
   }, [selectedDocumentId]);
+
+  useEffect(() => {
+    setTelegraphPublishResult(null);
+  }, [mode, outlineSelection, pageRangeInputs]);
+
+  useEffect(() => {
+    if (result) {
+      setTelegraphPublishResult(null);
+    }
+  }, [result?.generatedAt]);
 
   useEffect(() => {
     if (!selectedDocument) {
@@ -327,6 +489,7 @@ export default function ContentExtractorView() {
               kind: "epub",
               value: parsed
             });
+            setEpubSourceBuffer(arrayBuffer);
             setMode("outline");
             setAnalysisStatus("ready");
           });
@@ -345,6 +508,7 @@ export default function ContentExtractorView() {
             kind: "pdf",
             value: parsed
           });
+          setEpubSourceBuffer(null);
           setMode(parsed.analysis.supportsOutline ? "outline" : "pages");
           setAnalysisStatus("ready");
         });
@@ -355,6 +519,7 @@ export default function ContentExtractorView() {
 
         startTransition(() => {
           setPreparedDocument(null);
+          setEpubSourceBuffer(null);
           setAnalysisStatus("error");
           setAnalysisError(error instanceof Error ? error.message : "文档分析失败。");
         });
@@ -423,6 +588,17 @@ export default function ContentExtractorView() {
           resultGeneratedLabel={
             result ? `最近生成: ${formatRelativeTime(result.generatedAt)}` : "尚未生成结果"
           }
+          telegraphConfigured={telegraphSettings.configured}
+          telegraphPublishLabel={
+            telegraphPublishResult?.indexPageUrl
+              ? "最近发布: 目录页已生成"
+              : telegraphPublishResult?.partPages[0]?.url
+                ? "最近发布: 单页已生成"
+                : "尚未发布到 Telegraph"
+          }
+          telegraphPublishUrl={
+            telegraphPublishResult?.indexPageUrl ?? telegraphPublishResult?.partPages[0]?.url ?? null
+          }
           selectionCountLabel={
             mode === "outline"
               ? `已选目录: ${outlineSelection.length}`
@@ -443,6 +619,12 @@ export default function ContentExtractorView() {
           }}
           onCopyResult={() => {
             void handleCopyResult();
+          }}
+          onOpenTelegraphSettings={() => {
+            setTelegraphSheetOpen(true);
+          }}
+          onPublishToTelegraph={() => {
+            void handlePublishToTelegraph();
           }}
           onUpload={() => {
             triggerFileDialog(fileInputRef.current);
@@ -584,6 +766,65 @@ export default function ContentExtractorView() {
     }
   }
 
+  async function handleSaveTelegraphSettings() {
+    setPendingAction("telegraph-save");
+
+    try {
+      const nextSettings = await saveExtractorTelegraphSettings({
+        accessToken: telegraphForm.accessToken,
+        authorName: telegraphForm.authorName || null,
+        authorUrl: telegraphForm.authorUrl || null,
+        shortName: telegraphForm.shortName || null
+      });
+
+      startTransition(() => {
+        setTelegraphSettings(nextSettings);
+        setTelegraphSettingsStatus("ready");
+        setTelegraphSettingsError("");
+        setTelegraphSheetOpen(false);
+        setTelegraphForm((current) => ({
+          ...current,
+          accessToken: "",
+          authorName: nextSettings.authorName ?? "",
+          authorUrl: nextSettings.authorUrl ?? "",
+          shortName: nextSettings.shortName ?? ""
+        }));
+      });
+      toast.success("Telegraph 配置已保存。");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Telegraph 配置保存失败。";
+
+      setTelegraphSettingsStatus("error");
+      setTelegraphSettingsError(message);
+      toast.error(message);
+    } finally {
+      setPendingAction(null);
+    }
+  }
+
+  async function handlePublishToTelegraph() {
+    if (!result || !preparedDocument) {
+      return;
+    }
+
+    setPendingAction("telegraph-publish");
+
+    try {
+      const { payload, files } = await buildTelegraphPublishRequest(result, preparedDocument);
+      const published = await publishExtractorToTelegraph(payload, files);
+
+      startTransition(() => {
+        setTelegraphPublishResult(published);
+      });
+
+      toast.success(published.indexPageUrl ? "已生成 Telegraph 目录页。" : "已发布到 Telegraph。");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Telegraph 发布失败。");
+    } finally {
+      setPendingAction(null);
+    }
+  }
+
   const outlineLabels = useMemo(
     () => (analysis ? collectOutlineLabels(analysis.outline, selectedOutlineIds) : []),
     [analysis, selectedOutlineIds]
@@ -595,6 +836,11 @@ export default function ContentExtractorView() {
     analysisStatus !== "ready" ||
     (mode === "outline" && !outlineSelection.length) ||
     (mode === "pages" && (!pageRangeState.ranges.length || pageRangeState.errors.length > 0));
+  const telegraphPublishDisabled =
+    !result ||
+    !preparedDocument ||
+    pendingAction === "telegraph-publish" ||
+    !telegraphSettings.configured;
 
   return (
     <div className="grid gap-5">
@@ -611,6 +857,138 @@ export default function ContentExtractorView() {
         ref={fileInputRef}
         type="file"
       />
+
+      <Sheet onOpenChange={setTelegraphSheetOpen} open={telegraphSheetOpen}>
+        <SheetContent className="overflow-y-auto border-[#dce3ec] bg-[linear-gradient(180deg,#ffffff_0%,#f8fbff_100%)] sm:max-w-[28rem]">
+          <SheetHeader>
+            <SheetTitle>Telegraph 设置</SheetTitle>
+            <SheetDescription>
+              保存工作区级 Telegraph 账号信息。首次配置或轮换 token 时输入 access token；仅更新作者信息时可以留空。
+            </SheetDescription>
+          </SheetHeader>
+
+          <div className="grid gap-4">
+            <div className="rounded-[1rem] border border-[#dbe4ef] bg-white px-4 py-4">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-sm font-medium text-[#1f2e40]">当前状态</p>
+                  <p className="mt-1 text-xs leading-5 text-[#6f7b8d]">
+                    {telegraphSettings.configured ? "已配置，可直接发布。" : "未配置，需要先保存 Telegraph token。"}
+                  </p>
+                </div>
+                <Badge
+                  className={telegraphSettings.configured ? "border-[#d8e2f4] bg-[#eef4ff] text-[#4f6f99]" : "border-[#e8d7c6] bg-[#fdf6ef] text-[#8b6b47]"}
+                  variant="outline"
+                >
+                  {telegraphSettings.configured ? "Configured" : "Not Ready"}
+                </Badge>
+              </div>
+
+              {telegraphSettings.updatedAt ? (
+                <p className="mt-3 text-xs text-[#6f7b8d]">
+                  最近更新: {formatRelativeTime(telegraphSettings.updatedAt)}
+                </p>
+              ) : null}
+            </div>
+
+            <div className="grid gap-2">
+              <label className="text-sm font-medium text-[#1f2e40]" htmlFor="telegraph-access-token">
+                Access Token
+              </label>
+              <Input
+                className="rounded-[1rem] border-[#dbe4ef] bg-white"
+                id="telegraph-access-token"
+                onChange={(event) => {
+                  setTelegraphForm((current) => ({
+                    ...current,
+                    accessToken: event.target.value
+                  }));
+                }}
+                placeholder={telegraphSettings.configured ? "留空则沿用当前 token" : "例如 123456:abcdef..."}
+                type="password"
+                value={telegraphForm.accessToken}
+              />
+            </div>
+
+            <div className="grid gap-2">
+              <label className="text-sm font-medium text-[#1f2e40]" htmlFor="telegraph-short-name">
+                Short Name
+              </label>
+              <Input
+                className="rounded-[1rem] border-[#dbe4ef] bg-white"
+                id="telegraph-short-name"
+                onChange={(event) => {
+                  setTelegraphForm((current) => ({
+                    ...current,
+                    shortName: event.target.value
+                  }));
+                }}
+                placeholder="workspace-short-name"
+                value={telegraphForm.shortName}
+              />
+            </div>
+
+            <div className="grid gap-2">
+              <label className="text-sm font-medium text-[#1f2e40]" htmlFor="telegraph-author-name">
+                Author Name
+              </label>
+              <Input
+                className="rounded-[1rem] border-[#dbe4ef] bg-white"
+                id="telegraph-author-name"
+                onChange={(event) => {
+                  setTelegraphForm((current) => ({
+                    ...current,
+                    authorName: event.target.value
+                  }));
+                }}
+                placeholder="PageNest"
+                value={telegraphForm.authorName}
+              />
+            </div>
+
+            <div className="grid gap-2">
+              <label className="text-sm font-medium text-[#1f2e40]" htmlFor="telegraph-author-url">
+                Author URL
+              </label>
+              <Input
+                className="rounded-[1rem] border-[#dbe4ef] bg-white"
+                id="telegraph-author-url"
+                onChange={(event) => {
+                  setTelegraphForm((current) => ({
+                    ...current,
+                    authorUrl: event.target.value
+                  }));
+                }}
+                placeholder="https://..."
+                value={telegraphForm.authorUrl}
+              />
+            </div>
+
+            {(telegraphSettingsStatus === "error" || telegraphSettingsError) ? (
+              <div className="rounded-[1rem] border border-[#e8d7c6] bg-[#fdf6ef] px-4 py-3 text-sm text-[#76543d]">
+                {telegraphSettingsError || "Telegraph 配置不可用。"}
+              </div>
+            ) : null}
+          </div>
+
+          <SheetFooter>
+            <Button
+              className="h-11 rounded-[1rem] bg-[#162236] text-white hover:bg-[#1c2b44]"
+              disabled={pendingAction === "telegraph-save" || (!telegraphSettings.configured && !telegraphForm.accessToken.trim())}
+              onClick={() => {
+                void handleSaveTelegraphSettings();
+              }}
+            >
+              {pendingAction === "telegraph-save" ? (
+                <LoaderCircle className="size-4 animate-spin" />
+              ) : (
+                <Settings2 className="size-4" />
+              )}
+              {pendingAction === "telegraph-save" ? "保存中..." : "保存 Telegraph 配置"}
+            </Button>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
 
       <section className="overflow-hidden rounded-[1.6rem] border border-[#dce3ec] bg-[linear-gradient(180deg,#ffffff_0%,#f7fbff_100%)] p-5 shadow-[0_18px_40px_rgba(147,164,184,0.12)] sm:p-6">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
@@ -922,6 +1300,29 @@ export default function ContentExtractorView() {
 
                 <div className="flex flex-wrap gap-2">
                   <Button
+                    onClick={() => {
+                      setTelegraphSheetOpen(true);
+                    }}
+                    variant="outline"
+                  >
+                    <Settings2 className="size-4" />
+                    Telegraph 设置
+                  </Button>
+                  <Button
+                    disabled={telegraphPublishDisabled}
+                    onClick={() => {
+                      void handlePublishToTelegraph();
+                    }}
+                    variant="outline"
+                  >
+                    {pendingAction === "telegraph-publish" ? (
+                      <LoaderCircle className="size-4 animate-spin" />
+                    ) : (
+                      <TextQuote className="size-4" />
+                    )}
+                    {pendingAction === "telegraph-publish" ? "发布中..." : "发布到 Telegraph"}
+                  </Button>
+                  <Button
                     disabled={!result?.text}
                     onClick={() => {
                       void handleCopyResult();
@@ -945,6 +1346,123 @@ export default function ContentExtractorView() {
 
               {result ? (
                 <>
+                  <div className="rounded-[1.2rem] border border-[#dbe4ef] bg-white px-4 py-4">
+                    <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                      <div>
+                        <p className="text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-[#8190a3]">
+                          Publish to Telegraph
+                        </p>
+                        <h3 className="mt-2 font-serif text-[1.5rem] leading-[1.02] tracking-[-0.04em] text-[#1f2e40]">
+                          图文页面导出
+                        </h3>
+                        <p className="mt-2 max-w-2xl text-sm leading-6 text-[#6f7b8d]">
+                          EPUB 会按章节顺序发布图文；PDF 会在含图片页附加整页图像，再跟随该页文字内容。
+                        </p>
+                      </div>
+
+                      <Badge
+                        className={telegraphSettings.configured ? "border-[#d8e2f4] bg-[#eef4ff] text-[#4f6f99]" : "border-[#e8d7c6] bg-[#fdf6ef] text-[#8b6b47]"}
+                        variant="outline"
+                      >
+                        {telegraphSettings.configured ? "Telegraph Ready" : "Needs Setup"}
+                      </Badge>
+                    </div>
+
+                    <div className="mt-4 grid gap-3 xl:grid-cols-[minmax(0,1fr)_240px]">
+                      <div className="rounded-[1rem] border border-[#ecf0f7] bg-[#fbfcfe] px-4 py-3 text-sm leading-6 text-[#60728c]">
+                        {telegraphSettings.configured ? (
+                          <>
+                            <p>
+                              发布身份: {telegraphSettings.authorName || telegraphSettings.shortName || "未命名账号"}
+                            </p>
+                            <p className="mt-1">
+                              {telegraphPublishResult?.indexPageUrl
+                                ? "最近一次发布已生成目录页。"
+                                : telegraphPublishResult?.partPages[0]?.url
+                                  ? "最近一次发布已生成 Telegraph 页面。"
+                                  : "准备好后即可把当前结果发布到 Telegraph。"}
+                            </p>
+                          </>
+                        ) : (
+                          <p>当前工作区尚未配置 Telegraph token，先在右上角打开设置保存账号信息。</p>
+                        )}
+                      </div>
+
+                      <div className="grid gap-2">
+                        <Button
+                          className="h-11 rounded-[1rem] bg-[#162236] text-white hover:bg-[#1c2b44]"
+                          disabled={telegraphPublishDisabled}
+                          onClick={() => {
+                            void handlePublishToTelegraph();
+                          }}
+                        >
+                          {pendingAction === "telegraph-publish" ? (
+                            <LoaderCircle className="size-4 animate-spin" />
+                          ) : (
+                            <TextQuote className="size-4" />
+                          )}
+                          {pendingAction === "telegraph-publish" ? "发布中..." : "发布当前结果"}
+                        </Button>
+                        <Button
+                          onClick={() => {
+                            setTelegraphSheetOpen(true);
+                          }}
+                          variant="outline"
+                        >
+                          <Settings2 className="size-4" />
+                          管理 Telegraph 配置
+                        </Button>
+                      </div>
+                    </div>
+
+                    {telegraphPublishResult ? (
+                      <div className="mt-4 grid gap-3">
+                        <div className="rounded-[1rem] border border-[#e5edf8] bg-[#f8fbff] px-4 py-3">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Badge className="border-[#d8e2f4] bg-white text-[#60728c]" variant="outline">
+                              {telegraphPublishResult.indexPageUrl ? "目录页" : "单页发布"}
+                            </Badge>
+                            <Badge className="border-[#d8e2f4] bg-white text-[#60728c]" variant="outline">
+                              {telegraphPublishResult.partPages.length} parts
+                            </Badge>
+                          </div>
+                          <div className="mt-3 grid gap-2 text-sm text-[#315171]">
+                            {telegraphPublishResult.indexPageUrl ? (
+                              <a
+                                className="inline-flex items-center gap-2 underline decoration-[#94a3b8] underline-offset-4"
+                                href={telegraphPublishResult.indexPageUrl}
+                                rel="noreferrer"
+                                target="_blank"
+                              >
+                                打开目录页
+                                <ExternalLink className="size-4" />
+                              </a>
+                            ) : null}
+
+                            {telegraphPublishResult.partPages.map((part) => (
+                              <a
+                                className="inline-flex items-center gap-2 underline decoration-[#94a3b8] underline-offset-4"
+                                href={part.url}
+                                key={part.url}
+                                rel="noreferrer"
+                                target="_blank"
+                              >
+                                Part {part.partNumber}: {part.title}
+                                <ExternalLink className="size-4" />
+                              </a>
+                            ))}
+                          </div>
+                        </div>
+
+                        {telegraphPublishResult.warnings.length ? (
+                          <div className="rounded-[1rem] border border-[#e8d7c6] bg-[#fdf6ef] px-4 py-3 text-sm text-[#76543d]">
+                            {telegraphPublishResult.warnings.join(" ")}
+                          </div>
+                        ) : null}
+                      </div>
+                    ) : null}
+                  </div>
+
                   <div className="flex flex-wrap gap-2">
                     <Badge className="border-[#d8e2f4] bg-[#eef4ff] text-[#4f6f99]" variant="outline">
                       {result.mode === "outline" ? "Outline Extract" : "Page Range Extract"}
@@ -969,12 +1487,45 @@ export default function ContentExtractorView() {
                     </div>
                   ) : null}
 
+                  {epubDocument && epubSourceBuffer && epubPreviewSections.length ? (
+                    <div className="grid gap-3">
+                      <div>
+                        <p className="text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-[#8190a3]">
+                          EPUB Surface
+                        </p>
+                        <h3 className="mt-2 font-serif text-[1.5rem] leading-[1.02] tracking-[-0.04em] text-[#1f2e40]">
+                          原始章节预览
+                        </h3>
+                        <p className="mt-2 max-w-2xl text-sm leading-6 text-[#6f7b8d]">
+                          这里使用 `epub.js` 直接渲染你刚刚提取的章节内容，所以插图、SVG 和章节内样式会尽量按原书展示。
+                        </p>
+                      </div>
+
+                      <EpubPreviewSurface
+                        documentId={result.documentId}
+                        sections={epubPreviewSections}
+                        sourceBuffer={epubSourceBuffer}
+                      />
+                    </div>
+                  ) : null}
+
                   {result.blocks.length ? (
                     <div className="grid gap-4 rounded-[1.3rem] border border-[#eadfce] bg-[#fffdf8] px-4 py-5 sm:px-6">
+                      {epubDocument ? (
+                        <div className="border-b border-[#eee2d0] pb-1">
+                          <p className="text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-[#8190a3]">
+                            Structured Summary
+                          </p>
+                          <p className="mt-2 text-sm leading-6 text-[#6f7b8d]">
+                            下方仍保留结构化摘要，方便复制纯文本、核对章节边界和继续发布到 Telegraph。
+                          </p>
+                        </div>
+                      ) : null}
+
                       {result.blocks.map((block, index) => (
                         <ResultBlockView
                           block={block}
-                          key={`${block.type}-${index}-${"text" in block ? block.text : block.label}`}
+                          key={`${block.type}-${index}-${"text" in block ? block.text : "label" in block ? block.label : block.assetId}`}
                         />
                       ))}
                     </div>

@@ -33,7 +33,15 @@ export interface ParsedEpubSection {
   title: string;
 }
 
+export interface ParsedEpubAsset {
+  assetId: string;
+  data: Uint8Array;
+  fileName: string;
+  mimeType: string;
+}
+
 export interface ParsedEpubArchive {
+  assets: Record<string, ParsedEpubAsset>;
   metadata: ParsedEpubMetadata;
   outline: ExtractorOutlineNode[];
   sections: ParsedEpubSection[];
@@ -100,6 +108,18 @@ function normalizeEpubHref(href: string) {
   return decodeURIComponent(href).split("#")[0].replace(/^\.\//, "");
 }
 
+export function buildEpubAssetId(assetPath: string) {
+  return `epub:${normalizeEpubHref(assetPath)}`;
+}
+
+function getEpubAssetFileName(assetPath: string) {
+  return assetPath.split("/").at(-1) ?? "image";
+}
+
+export function resolveEpubRelativeHref(baseFilePath: string, relativePath: string) {
+  return normalizeEpubHref(resolveRelativePath(baseFilePath, relativePath));
+}
+
 function stripMarkup(markup: string) {
   return normalizeWhitespace(
     markup
@@ -163,6 +183,14 @@ function getDomParser() {
   return new DOMParser();
 }
 
+function getXmlSerializer() {
+  if (typeof XMLSerializer === "undefined") {
+    return null;
+  }
+
+  return new XMLSerializer();
+}
+
 function getChildElements(element: { childNodes?: ArrayLike<unknown> }) {
   return Array.from(element.childNodes ?? []).filter((child): child is DomElementLike => {
     return Boolean(
@@ -186,7 +214,11 @@ function findFirstDescendant(root: { getElementsByTagName: (name: string) => Arr
   return null;
 }
 
-function extractBlocksFromMarkup(markup: string): ExtractorResultBlock[] {
+function extractBlocksFromMarkup(
+  markup: string,
+  sectionPath: string,
+  assetsById: Map<string, ParsedEpubAsset>
+): ExtractorResultBlock[] {
   const parser = getDomParser();
 
   if (!parser) {
@@ -200,6 +232,7 @@ function extractBlocksFromMarkup(markup: string): ExtractorResultBlock[] {
     ?? (document.getElementsByTagName("body")[0] as DomElementLike | undefined)
     ?? (document.documentElement as unknown as DomElementLike);
   const blocks: ExtractorResultBlock[] = [];
+  let inlineSvgIndex = 0;
 
   const pushTextBlock = (type: "paragraph" | "list-item" | "quote", text: string) => {
     const normalized = normalizeWhitespace(text);
@@ -211,11 +244,112 @@ function extractBlocksFromMarkup(markup: string): ExtractorResultBlock[] {
     blocks.push({ type, text: normalized });
   };
 
+  const buildImageBlock = (
+    element: DomElementLike,
+    captionOverride = ""
+  ): ExtractorResultBlock | null => {
+    const tagName = element.tagName.toLowerCase();
+    const altText = normalizeWhitespace(
+      element.getAttribute("alt")
+      ?? element.getAttribute("aria-label")
+      ?? captionOverride
+      ?? ""
+    );
+    const caption = normalizeWhitespace(captionOverride || element.getAttribute("title") || altText);
+
+    if (tagName === "img") {
+      const src =
+        element.getAttribute("src")
+        ?? element.getAttribute("href")
+        ?? element.getAttribute("xlink:href");
+
+      if (!src) {
+        return null;
+      }
+
+      const resolvedPath = resolveEpubRelativeHref(sectionPath, src);
+      const asset = assetsById.get(buildEpubAssetId(resolvedPath));
+
+      if (!asset) {
+        return null;
+      }
+
+      return {
+        type: "image",
+        assetId: asset.assetId,
+        alt: altText,
+        caption,
+        mimeType: asset.mimeType
+      };
+    }
+
+    if (tagName === "svg") {
+      const serializer = getXmlSerializer();
+
+      if (!serializer) {
+        return null;
+      }
+
+      const serialized = serializer.serializeToString(element as unknown as Node);
+
+      if (!serialized.trim()) {
+        return null;
+      }
+
+      const assetId = `epub:inline:${normalizeEpubHref(sectionPath)}#svg-${inlineSvgIndex}`;
+      inlineSvgIndex += 1;
+      assetsById.set(assetId, {
+        assetId,
+        data: new TextEncoder().encode(serialized),
+        fileName: `${normalizeEpubHref(sectionPath).split("/").at(-1) ?? "section"}-image-${inlineSvgIndex}.svg`,
+        mimeType: "image/svg+xml"
+      });
+
+      return {
+        type: "image",
+        assetId,
+        alt: altText,
+        caption,
+        mimeType: "image/svg+xml"
+      };
+    }
+
+    return null;
+  };
+
   const visit = (element: DomElementLike) => {
     const tagName = element.tagName.toLowerCase();
     const text = normalizeWhitespace(element.textContent ?? "");
 
+    if (tagName === "figure") {
+      const childElements = getChildElements(element);
+      const caption = normalizeWhitespace(
+        childElements.find((child) => child.tagName.toLowerCase() === "figcaption")?.textContent ?? ""
+      );
+      const mediaElement = childElements.find((child) => {
+        const childTag = child.tagName.toLowerCase();
+        return childTag === "img" || childTag === "svg";
+      });
+      const block = mediaElement ? buildImageBlock(mediaElement, caption) : null;
+
+      if (block) {
+        blocks.push(block);
+      }
+
+      childElements
+        .filter((child) => child !== mediaElement && child.tagName.toLowerCase() !== "figcaption")
+        .forEach(visit);
+      return;
+    }
+
     if (!text) {
+      if (tagName === "img" || tagName === "svg") {
+        const block = buildImageBlock(element);
+
+        if (block) {
+          blocks.push(block);
+        }
+      }
       return;
     }
 
@@ -244,6 +378,15 @@ function extractBlocksFromMarkup(markup: string): ExtractorResultBlock[] {
     }
 
     if (tagName === "img" || tagName === "svg") {
+      const block = buildImageBlock(element);
+
+      if (block) {
+        blocks.push(block);
+      }
+      return;
+    }
+
+    if (tagName === "figcaption") {
       return;
     }
 
@@ -383,6 +526,30 @@ export async function parseEpubArchive(
   const opfText = await loadRequiredTextFile(zip, opfPath);
   const manifest = parseManifest(opfText);
   const spineIds = parseSpine(opfText);
+  const assetsById = new Map<string, ParsedEpubAsset>();
+
+  await Promise.all(
+    Array.from(manifest.values())
+      .filter((item) => /^image\//i.test(item.mediaType) || item.href.toLowerCase().endsWith(".svg"))
+      .map(async (item) => {
+        const assetPath = resolveRelativePath(opfPath, item.href);
+        const assetFile = zip.file(assetPath);
+
+        if (!assetFile) {
+          return;
+        }
+
+        const normalizedAssetPath = normalizeEpubHref(assetPath);
+        const assetId = buildEpubAssetId(normalizedAssetPath);
+
+        assetsById.set(assetId, {
+          assetId,
+          data: await assetFile.async("uint8array"),
+          fileName: getEpubAssetFileName(normalizedAssetPath),
+          mimeType: item.mediaType || "application/octet-stream"
+        });
+      })
+  );
 
   const sections: ParsedEpubSection[] = [];
 
@@ -396,12 +563,12 @@ export async function parseEpubArchive(
     const chapterPath = resolveRelativePath(opfPath, item.href);
     const chapterMarkup = await loadRequiredTextFile(zip, chapterPath);
     const text = stripMarkup(chapterMarkup);
+    const blocks = extractBlocksFromMarkup(chapterMarkup, chapterPath, assetsById);
 
-    if (!text) {
+    if (!text && !blocks.some((block) => block.type === "image")) {
       continue;
     }
 
-    const blocks = extractBlocksFromMarkup(chapterMarkup);
     const title =
       blocks.find((block) => block.type === "heading")?.text ??
       extractTagValue(chapterMarkup, "title") ??
@@ -455,6 +622,7 @@ export async function parseEpubArchive(
   const language = extractTagValue(opfText, "dc:language");
 
   return {
+    assets: Object.fromEntries(Array.from(assetsById.entries())),
     metadata: {
       title: title || "Untitled EPUB",
       author: author || "Unknown author",

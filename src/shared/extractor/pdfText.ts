@@ -146,8 +146,11 @@ export function linesToBlocks(lines: PdfLine[]) {
   return blocks;
 }
 
-export function buildPdfPageWarnings(textItemCounts: number[]) {
-  const emptyPages = textItemCounts.filter((count) => count === 0).length;
+export function buildPdfPageWarnings(
+  textItemCounts: number[],
+  imagePresence: boolean[] = textItemCounts.map(() => false)
+) {
+  const emptyPages = textItemCounts.filter((count, index) => count === 0 && !imagePresence[index]).length;
 
   if (!emptyPages) {
     return [];

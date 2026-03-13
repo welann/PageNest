@@ -6,6 +6,7 @@ import {
 import pdfWorkerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 
 import { annotateOutlineRanges, collectAnnotatedNodes, type AnnotatedOutlineNode } from "@shared/extractor/outline";
+import { hasPdfImageOps } from "@shared/extractor/pdfOps";
 import { buildPdfPageWarnings, groupPdfTextItems, linesToBlocks, toRenderableTextItems } from "@shared/extractor/pdfText";
 import { formatPageRanges, mergePageRanges } from "@shared/extractor/selection";
 import type {
@@ -139,19 +140,36 @@ export async function analyzePdfDocument(
 async function extractPageBlocks(pdf: PDFDocumentProxy, pageNumber: number) {
   const page = await pdf.getPage(pageNumber);
   const content = await page.getTextContent();
+  const operatorList = await page.getOperatorList();
   const textItems = toRenderableTextItems(content.items);
+  const hasImage = hasPdfImageOps(operatorList.fnArray);
+  const blocks: ExtractorResultBlock[] = [];
+
+  if (hasImage) {
+    blocks.push({
+      type: "image",
+      assetId: `pdf:page:${pageNumber}`,
+      alt: `第 ${pageNumber} 页图像`,
+      caption: `第 ${pageNumber} 页图像`,
+      mimeType: "image/png",
+      pageNumber,
+      sourceLabel: `第 ${pageNumber} 页`
+    });
+  }
 
   if (!textItems.length) {
     return {
-      blocks: [] as ExtractorResultBlock[],
+      blocks,
+      hasImage,
       textItemCount: 0
     };
   }
 
-  const blocks = linesToBlocks(groupPdfTextItems(textItems));
+  blocks.push(...linesToBlocks(groupPdfTextItems(textItems)));
 
   return {
     blocks,
+    hasImage,
     textItemCount: textItems.length
   };
 }
@@ -165,6 +183,7 @@ export async function extractPdfByPageRanges(
   const normalizedRanges = mergePageRanges(ranges);
   const blocks: ExtractorResultBlock[] = [];
   const textItemCounts: number[] = [];
+  const imagePresence: boolean[] = [];
 
   for (const range of normalizedRanges) {
     blocks.push({
@@ -173,10 +192,11 @@ export async function extractPdfByPageRanges(
     });
 
     for (let pageNumber = range.start; pageNumber <= range.end; pageNumber += 1) {
-      const { blocks: pageBlocks, textItemCount } = await extractPageBlocks(parsed.pdf, pageNumber);
+      const { blocks: pageBlocks, hasImage, textItemCount } = await extractPageBlocks(parsed.pdf, pageNumber);
       textItemCounts.push(textItemCount);
+      imagePresence.push(hasImage);
 
-      if (!pageBlocks.length) {
+      if (!pageBlocks.length && !hasImage) {
         continue;
       }
 
@@ -189,7 +209,7 @@ export async function extractPdfByPageRanges(
     }
   }
 
-  const warnings = buildPdfPageWarnings(textItemCounts);
+  const warnings = buildPdfPageWarnings(textItemCounts, imagePresence);
 
   return {
     documentId: document.id,

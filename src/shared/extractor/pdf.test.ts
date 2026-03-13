@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { buildPdfPageWarnings, groupPdfTextItems } from "@shared/extractor/pdfText";
+import { hasPdfImageOps } from "@shared/extractor/pdfOps";
 
 describe("groupPdfTextItems", () => {
   it("groups nearby text items into readable lines", () => {
@@ -52,5 +53,16 @@ describe("buildPdfPageWarnings", () => {
     expect(buildPdfPageWarnings([12, 0, 5])).toEqual([
       "有 1 页没有可提取文本，已在结果中跳过这些空白/扫描页。"
     ]);
+  });
+
+  it("does not warn when empty pages are exported as image pages", () => {
+    expect(buildPdfPageWarnings([0, 0], [true, true])).toEqual([]);
+  });
+});
+
+describe("hasPdfImageOps", () => {
+  it("detects image paint operators in a PDF page operator list", () => {
+    expect(hasPdfImageOps([10, 85, 11])).toBe(true);
+    expect(hasPdfImageOps([10, 11])).toBe(false);
   });
 });

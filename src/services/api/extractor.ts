@@ -1,4 +1,10 @@
-import type { ExtractorBootstrap, ExtractorDocumentSummary } from "@shared/types/extractor";
+import type {
+  ExtractorBootstrap,
+  ExtractorDocumentSummary,
+  ExtractorTelegraphPublishRequest,
+  ExtractorTelegraphPublishResult,
+  ExtractorTelegraphSettingsStatus
+} from "@shared/types/extractor";
 
 async function parseResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
@@ -41,4 +47,61 @@ export async function importExtractorDocument(file: File) {
   });
 
   return parseResponse<{ document: ExtractorDocumentSummary }>(response);
+}
+
+export async function getExtractorTelegraphSettings(signal?: AbortSignal) {
+  const response = await fetch(`/api/extractor/telegraph/settings?ts=${Date.now()}`, {
+    cache: "no-store",
+    headers: {
+      Accept: "application/json"
+    },
+    signal
+  });
+
+  const payload = await parseResponse<{ settings: ExtractorTelegraphSettingsStatus }>(response);
+  return payload.settings;
+}
+
+export async function saveExtractorTelegraphSettings(payload: {
+  accessToken: string;
+  authorName?: string | null;
+  authorUrl?: string | null;
+  shortName?: string | null;
+}) {
+  const response = await fetch("/api/extractor/telegraph/settings", {
+    body: JSON.stringify(payload),
+    headers: {
+      "Content-Type": "application/json"
+    },
+    method: "POST"
+  });
+
+  const result = await parseResponse<{ settings: ExtractorTelegraphSettingsStatus }>(response);
+  return result.settings;
+}
+
+export async function publishExtractorToTelegraph(
+  payload: ExtractorTelegraphPublishRequest,
+  files: Map<string, File>
+) {
+  const formData = new FormData();
+  formData.append("payload", JSON.stringify(payload));
+
+  for (const asset of payload.assets) {
+    const file = files.get(asset.assetId);
+
+    if (!file) {
+      continue;
+    }
+
+    formData.append(asset.fieldName, file, asset.fileName);
+  }
+
+  const response = await fetch("/api/extractor/telegraph/publish", {
+    body: formData,
+    method: "POST"
+  });
+
+  const result = await parseResponse<{ result: ExtractorTelegraphPublishResult }>(response);
+  return result.result;
 }

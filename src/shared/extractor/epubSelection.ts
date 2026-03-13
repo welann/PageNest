@@ -39,6 +39,34 @@ function mergeSectionRanges(ranges: EpubSectionRange[]) {
   return merged;
 }
 
+function getSelectedOutlineNodes(parsed: ParsedEpubDocument, selectedIds: string[]) {
+  return collectAnnotatedNodes(parsed.outline, new Set(selectedIds)).filter(
+    (node) => typeof node.start === "number" && typeof node.end === "number"
+  );
+}
+
+export function getEpubSectionsByOutline(parsed: ParsedEpubDocument, selectedIds: string[]) {
+  const selectedNodes = getSelectedOutlineNodes(parsed, selectedIds);
+  const ranges = mergeSectionRanges(
+    selectedNodes.map((node) => ({
+      start: node.start as number,
+      end: node.end as number
+    }))
+  );
+
+  const sections = ranges.flatMap((range) =>
+    parsed.archive.sections.filter(
+      (section) => section.order >= range.start && section.order <= range.end
+    )
+  );
+
+  return {
+    ranges,
+    sections,
+    selectedNodes
+  };
+}
+
 export function analyzeEpubArchive(
   archive: ParsedEpubArchive,
   documentId: number
@@ -72,29 +100,15 @@ export function extractEpubByOutline(
   document: ExtractorDocumentSummary,
   selectedIds: string[]
 ): ExtractorResult {
-  const selectedNodes = collectAnnotatedNodes(parsed.outline, new Set(selectedIds)).filter(
-    (node) => typeof node.start === "number" && typeof node.end === "number"
-  );
-  const ranges = mergeSectionRanges(
-    selectedNodes.map((node) => ({
-      start: node.start as number,
-      end: node.end as number
-    }))
-  );
+  const { ranges, sections, selectedNodes } = getEpubSectionsByOutline(parsed, selectedIds);
   const blocks = [];
 
-  for (const range of ranges) {
-    const selectedSections = parsed.archive.sections.filter(
-      (section) => section.order >= range.start && section.order <= range.end
-    );
-
-    for (const section of selectedSections) {
-      blocks.push({
-        type: "section-break" as const,
-        label: section.title
-      });
-      blocks.push(...section.blocks);
-    }
+  for (const section of sections) {
+    blocks.push({
+      type: "section-break" as const,
+      label: section.title
+    });
+    blocks.push(...section.blocks);
   }
 
   return {
@@ -103,6 +117,7 @@ export function extractEpubByOutline(
     documentFormat: document.format,
     mode: "outline",
     selectionSummary: selectedNodes.map((node) => node.label),
+    sourceRefs: sections.map((section) => normalizeEpubSectionHref(section.href)),
     blocks,
     text: "",
     charCount: 0,

@@ -102,7 +102,7 @@ Detailed module documentation: [src/modules/ebook-reader/README.md](./src/module
 
 ### Content Extractor
 
-The Content Extractor module is a shared-library extraction desk for EPUB and PDF files. It uploads EPUB/PDF into the existing library, analyzes EPUB outlines or PDF bookmarks/page ranges on the client, previews structured extracted content, and copies the generated text without persisting extraction history.
+The Content Extractor module is a shared-library extraction desk for EPUB and PDF files. It uploads EPUB/PDF into the existing library, analyzes EPUB outlines or PDF bookmarks/page ranges on the client, preserves ordered image blocks for EPUB and image-bearing PDF pages, renders extracted EPUB chapters through `epub.js` for faithful in-page preview, and can publish the current result to Telegraph as public pages.
 
 Current capabilities:
 
@@ -112,8 +112,9 @@ Current capabilities:
 - extract bookmarked PDF content by outline ranges
 - extract PDF content by multiple normalized page ranges
 - merge overlapping page ranges before extraction
-- preview extracted headings, paragraphs, list items, and page/section separators in a paper-style result desk
+- preview extracted EPUB chapters through `epub.js` while keeping a structured summary of headings, paragraphs, list items, and page/section separators in the result desk
 - warn when the selected PDF range is empty or likely scanned instead of silently failing
 - keep extraction results in the current session only while still allowing clipboard export
+- save workspace Telegraph settings and publish the current extraction into one or more Telegraph pages with an auto-generated index page when needed
 
 Detailed module documentation: [src/modules/content-extractor/README.md](./src/modules/content-extractor/README.md)

@@ -140,6 +140,16 @@ export function serializeExtractorResult(result: ExtractorResult) {
       continue;
     }
 
+    if (block.type === "image") {
+      if (lines.length && lines[lines.length - 1] !== "") {
+        lines.push("");
+      }
+
+      lines.push(`[Image] ${normalizeWhitespace(block.caption || block.alt || block.sourceLabel || "Untitled image")}`);
+      lines.push("");
+      continue;
+    }
+
     if (block.type === "list-item") {
       lines.push(`- ${normalizeWhitespace(block.text)}`);
       continue;

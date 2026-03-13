@@ -29,6 +29,7 @@ async function buildFixtureEpub() {
           <item id="nav" href="nav.xhtml" media-type="application/xhtml+xml" properties="nav"/>
           <item id="c1" href="chapters/chapter-1.xhtml" media-type="application/xhtml+xml"/>
           <item id="c2" href="chapters/chapter-2.xhtml" media-type="application/xhtml+xml"/>
+          <item id="img1" href="images/fruit.svg" media-type="image/svg+xml"/>
         </manifest>
         <spine>
           <itemref idref="c1"/>
@@ -55,12 +56,24 @@ async function buildFixtureEpub() {
       </html>`
   );
   zip.file(
+    "OPS/images/fruit.svg",
+    `<svg xmlns="http://www.w3.org/2000/svg" width="120" height="80" viewBox="0 0 120 80">
+      <rect width="120" height="80" rx="16" fill="#f4d7aa"/>
+      <circle cx="40" cy="40" r="18" fill="#db7c3f"/>
+      <circle cx="76" cy="34" r="14" fill="#6c8c54"/>
+    </svg>`
+  );
+  zip.file(
     "OPS/chapters/chapter-1.xhtml",
     `<!doctype html>
       <html>
         <head><title>Chapter One</title></head>
         <body>
           <h1>Chapter One</h1>
+          <figure>
+            <img src="../images/fruit.svg" alt="Fruit plate" />
+            <figcaption>Fruit plate</figcaption>
+          </figure>
           <p>First paragraph.</p>
         </body>
       </html>`
@@ -98,6 +111,20 @@ describe("parseEpubArchive", () => {
       level: 1,
       text: "Chapter One"
     });
+    expect(archive.sections[0].blocks[1]).toEqual({
+      type: "image",
+      assetId: "epub:OPS/images/fruit.svg",
+      alt: "Fruit plate",
+      caption: "Fruit plate",
+      mimeType: "image/svg+xml"
+    });
+    expect(archive.assets["epub:OPS/images/fruit.svg"]).toEqual(
+      expect.objectContaining({
+        assetId: "epub:OPS/images/fruit.svg",
+        fileName: "fruit.svg",
+        mimeType: "image/svg+xml"
+      })
+    );
     expect(archive.sections[1].blocks[1]).toEqual({
       type: "quote",
       text: "Quoted text."

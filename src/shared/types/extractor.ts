@@ -1,5 +1,48 @@
 export type ExtractorMode = "outline" | "pages";
 
+export interface ExtractorTelegraphSettingsStatus {
+  configured: boolean;
+  shortName: string | null;
+  authorName: string | null;
+  authorUrl: string | null;
+  updatedAt: string | null;
+}
+
+export interface ExtractorTelegraphPartPage {
+  title: string;
+  url: string;
+  path: string;
+  partNumber: number;
+}
+
+export interface ExtractorTelegraphPublishResult {
+  indexPageUrl: string | null;
+  indexPagePath: string | null;
+  partPages: ExtractorTelegraphPartPage[];
+  publishedAt: string;
+  warnings: string[];
+}
+
+export interface ExtractorTelegraphPublishPayload {
+  blocks: ExtractorResultBlock[];
+  documentFormat: string;
+  documentId: number;
+  documentTitle: string;
+  mode: ExtractorMode;
+  selectionSummary: string[];
+}
+
+export interface ExtractorTelegraphPublishAssetDescriptor {
+  assetId: string;
+  fieldName: string;
+  fileName: string;
+  mimeType: string;
+}
+
+export interface ExtractorTelegraphPublishRequest extends ExtractorTelegraphPublishPayload {
+  assets: ExtractorTelegraphPublishAssetDescriptor[];
+}
+
 export interface ExtractorDocumentSummary {
   id: number;
   title: string;
@@ -71,6 +114,15 @@ export type ExtractorResultBlock =
       type: "quote";
       text: string;
       sourceLabel?: string;
+    }
+  | {
+      type: "image";
+      assetId: string;
+      alt: string;
+      caption: string;
+      mimeType: string;
+      pageNumber?: number;
+      sourceLabel?: string;
     };
 
 export interface ExtractorResult {
@@ -79,6 +131,7 @@ export interface ExtractorResult {
   documentFormat: string;
   mode: ExtractorMode;
   selectionSummary: string[];
+  sourceRefs?: string[];
   blocks: ExtractorResultBlock[];
   text: string;
   charCount: number;
