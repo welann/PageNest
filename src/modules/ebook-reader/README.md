@@ -14,6 +14,7 @@ It is built for EPUB-based reading and vocabulary tracking:
 - mark a selected word as learned or save it into the explicit unknown-word list
 - batch mark current-page lemmas as learned while preserving any words explicitly pinned in the unknown-word list
 - export the saved unknown-word list for the current book as a CSV generated on the server
+- copy only the new unknown words added since the last clipboard export point directly into the clipboard
 - adjust reading font size and reflow pagination with updated total-page calculation
 - apply local state updates immediately after imports, saved unknown-word actions, learned-word updates, and exports so the UI does not depend on a full page refresh
 - present the module in the shared Pencil-inspired workspace shell, with reader commands and word detail injected into the global left sidebar as a module submenu
@@ -43,7 +44,7 @@ src/modules/ebook-reader/
   - registers the active reader session panel into the global left sidebar via the shell slot API
   - keeps the page body focused on the reading viewport while moving word detail, stats, and import/export controls into the shell-owned submenu
   - leaves the current-page bulk learning button in the viewport toolbar because it acts on the visible page rather than the whole module
-  - coordinates actions such as importing EPUB/dictionary/learned words, marking learned lemmas, saving unknown words, and triggering exports
+  - coordinates actions such as importing EPUB/dictionary/learned words, marking learned lemmas, saving unknown words, generating CSV exports, and copying incremental unknown-word exports to the clipboard
 - [ReaderSidebar.tsx](/Users/welann/Documents/code/daily/PageNest/src/modules/ebook-reader/ReaderSidebar.tsx)
   - renders the reader session panel that is mounted into the global workspace sidebar as a nested module submenu
   - consolidates import/export actions, reading stats, and selected-word actions into one left-side control surface
@@ -64,7 +65,7 @@ src/modules/ebook-reader/
 - [defaultDictionary.ts](/Users/welann/Documents/code/daily/PageNest/src/shared/reader/defaultDictionary.ts)
   - lazy loads the built-in ECDICT subset
 - [reader.ts](/Users/welann/Documents/code/daily/PageNest/src/shared/types/reader.ts)
-  - shared payload and persistence types for books, learned lemmas, unknown lemmas, exports, and bootstrap state
+  - shared payload and persistence types for books, learned lemmas, unknown lemmas, export records, clipboard-export cursors, and bootstrap state
 - [reader.ts](/Users/welann/Documents/code/daily/PageNest/src/services/api/reader.ts)
   - client-side API wrapper for all reader endpoints
 
@@ -74,6 +75,7 @@ src/modules/ebook-reader/
   - D1/R2 binding checks
   - bootstrap assembly
   - mapping between SQL rows and shared reader types
+  - persists the per-book clipboard export cursor used by incremental unknown-word copying
 - [reader-import.ts](/Users/welann/Documents/code/daily/PageNest/functions/_lib/reader-import.ts)
   - dictionary and learned-word import parsing/upsert
 - [reader-epub.ts](/Users/welann/Documents/code/daily/PageNest/functions/_lib/reader-epub.ts)
@@ -100,8 +102,12 @@ src/modules/ebook-reader/
 7. When the user clicks `标记本页已学` in the reader toolbar:
    - only current-page lemmas that are not explicitly saved in the unknown-word list are written into the learned-word table
    - words already saved in the unknown-word list stay untouched and keep being highlighted on later pages until manually marked as learned
-8. Export requests are handled on the server, written to R2, and surfaced back through the latest-export API.
-9. Successful mutation responses are merged back into local reader state immediately so counts and lists update without waiting for a full bootstrap reload.
+8. When the user clicks the incremental clipboard export action:
+   - the backend reads the current book's `last_clipboard_exported_at` cursor from D1
+   - only unknown words updated after that cursor are emitted, one lemma per line
+   - the cursor is then advanced so the next copy only includes newly added words
+9. CSV export requests are handled on the server, written to R2, and surfaced back through the latest-export API.
+10. Successful mutation responses are merged back into local reader state immediately so counts and lists update without waiting for a full bootstrap reload.
 
 ## Storage Model
 
@@ -128,6 +134,7 @@ The browser may cache data temporarily for UX, but D1 and R2 remain the source o
 - save selected word into an explicit unknown-word list
 - batch mark current-page lemmas as learned while keeping explicitly saved unknown words untouched
 - server-side CSV export for saved unknown words
+- incremental clipboard export for newly added unknown words using a per-book export cursor
 - adjustable reading font size with automatic reflow and total-page recalculation
 - shared-shell reader workspace redesign while preserving the existing Cloudflare API surface and storage model
 - single-rail navigation where the global left sidebar owns home navigation and the reader injects its own submenu panel
@@ -137,6 +144,7 @@ The browser may cache data temporarily for UX, but D1 and R2 remain the source o
 - Apply both reader migrations before using the module remotely:
   - [0002_reader_cloudflare.sql](/Users/welann/Documents/code/daily/PageNest/db/migrations/0002_reader_cloudflare.sql)
   - [0003_reader_unknown_words.sql](/Users/welann/Documents/code/daily/PageNest/db/migrations/0003_reader_unknown_words.sql)
+  - [0004_reader_clipboard_export_cursor.sql](/Users/welann/Documents/code/daily/PageNest/db/migrations/0004_reader_clipboard_export_cursor.sql)
 - The built-in dictionary asset is generated by [build_default_ecdict.mjs](/Users/welann/Documents/code/daily/PageNest/scripts/build_default_ecdict.mjs). If the subset changes, rebuild the asset before deployment.
 - The reader currently targets reflowable English EPUBs. Fixed-layout EPUBs or non-English-specific vocabulary rules will need separate handling.
 - Font-size changes intentionally trigger page-index rebuilds. This is expected and is necessary for correct total-page reporting.

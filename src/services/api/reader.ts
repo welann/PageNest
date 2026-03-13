@@ -1,6 +1,7 @@
 import type {
   ReaderBookImportResult,
   ReaderBootstrap,
+  ReaderClipboardExportResult,
   ReaderDictionaryImportResult,
   ReaderExportTriggerResult,
   ReaderLatestExportResult,
@@ -146,4 +147,12 @@ export async function getReaderLatestExport(bookId: number) {
   });
 
   return parseResponse<ReaderLatestExportResult>(response);
+}
+
+export async function copyReaderIncrementalUnknownWords(bookId: number) {
+  const response = await fetch(`/api/reader/books/${bookId}/copy-unknown-words`, {
+    method: "POST"
+  });
+
+  return parseResponse<ReaderClipboardExportResult>(response);
 }

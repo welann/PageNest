@@ -21,6 +21,7 @@ export const readerLibraryItems = sqliteTable("reader_library_items", {
   storageKey: text("storage_key").notNull(),
   coverStorageKey: text("cover_storage_key"),
   lastExportedAt: text("last_exported_at"),
+  lastClipboardExportedAt: text("last_clipboard_exported_at"),
   createdAt: text("created_at").notNull()
 });
 

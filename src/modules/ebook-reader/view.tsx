@@ -19,6 +19,7 @@ import type {
 } from "@shared/types/reader";
 import { formatRelativeTime } from "@shared/utils/format";
 import {
+  copyReaderIncrementalUnknownWords,
   getReaderBootstrap,
   importReaderBook,
   importReaderDictionary,
@@ -120,6 +121,7 @@ export default function EbookReaderView() {
     | "dictionary"
     | "learned"
     | "export"
+    | "copy-export"
     | "mark-learned"
     | "mark-page-learned"
     | "save-unknown"
@@ -555,11 +557,51 @@ export default function EbookReaderView() {
     }
   }
 
+  async function handleCopyUnknownWords() {
+    if (!selectedBook) {
+      return;
+    }
+
+    setPendingAction("copy-export");
+
+    try {
+      const result = await copyReaderIncrementalUnknownWords(selectedBook.id);
+
+      setBootstrap((current) => ({
+        ...current,
+        books: current.books.map((book) =>
+          book.id === selectedBook.id
+            ? {
+                ...book,
+                lastClipboardExportedAt: result.cursorUpdatedAt
+              }
+            : book
+        )
+      }));
+
+      if (result.exportedCount > 0) {
+        await navigator.clipboard.writeText(result.text);
+        toast.success(`Copied ${result.exportedCount} new unknown words to clipboard.`);
+      } else {
+        toast.success("No new unknown words since the last clipboard export.");
+      }
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Copying incremental unknown words failed."
+      );
+    } finally {
+      setPendingAction(null);
+    }
+  }
+
   const currentBookTitle = selectedBook?.title ?? "Reader Desk";
   const currentProgressPercent = selectedBook?.progress?.progressPercent ?? 0;
   const latestExportLabel = selectedBookExport?.completedAt
     ? formatRelativeTime(selectedBookExport.completedAt)
     : "Not exported";
+  const clipboardExportLabel = selectedBook?.lastClipboardExportedAt
+    ? formatRelativeTime(selectedBook.lastClipboardExportedAt)
+    : "Not copied";
   const openBookImport = useCallback(() => {
     triggerFileDialog(bookInputRef.current);
   }, []);
@@ -572,6 +614,9 @@ export default function EbookReaderView() {
   const runExportCsv = useCallback(() => {
     void handleExportUnknownWords();
   }, [selectedBook, pendingAction, bootstrap.latestExports]);
+  const runCopyUnknownWords = useCallback(() => {
+    void handleCopyUnknownWords();
+  }, [selectedBook, pendingAction, selectedBookSavedUnknowns.length]);
   const runMarkCurrentPageLearned = useCallback(() => {
     void handleMarkCurrentPageLearned();
   }, [bulkMarkablePageWords, pendingAction]);
@@ -590,6 +635,12 @@ export default function EbookReaderView() {
       panel: (
         <ReaderSidebarPanel
           bookFileName={bookFileName}
+          clipboardExportDisabled={
+            !selectedBook ||
+            !selectedBookSavedUnknowns.length ||
+            pendingAction === "copy-export"
+          }
+          clipboardExportLabel={clipboardExportLabel}
           currentBookTitle={currentBookTitle}
           currentProgressPercent={currentProgressPercent}
           dictionaryFileName={dictionaryFileName}
@@ -607,6 +658,7 @@ export default function EbookReaderView() {
           sourceMode={bootstrap.infrastructure.mode}
           sourceReady={sourceReady}
           visibleUnknownCount={currentPageWords.length}
+          onCopyUnknownWords={runCopyUnknownWords}
           onExportCsv={runExportCsv}
           onImportBook={openBookImport}
           onImportDictionary={openDictionaryImport}
@@ -621,7 +673,7 @@ export default function EbookReaderView() {
       bootstrap.infrastructure.mode,
       bootstrap.learnedLemmas.length,
       bootstrap.savedUnknownLemmas.length,
-      bulkMarkablePageWords.length,
+      clipboardExportLabel,
       currentBookTitle,
       currentPageWords.length,
       currentProgressPercent,
@@ -633,6 +685,7 @@ export default function EbookReaderView() {
       openDictionaryImport,
       openLearnedImport,
       pendingAction,
+      runCopyUnknownWords,
       runExportCsv,
       runMarkCurrentPageLearned,
       runMarkLearned,

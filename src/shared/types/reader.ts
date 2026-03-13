@@ -14,6 +14,7 @@ export interface ReaderBookSummary {
   coverStorageKey: string | null;
   createdAt: string;
   lastExportedAt: string | null;
+  lastClipboardExportedAt: string | null;
   progress: ReaderBookProgress | null;
 }
 
@@ -109,4 +110,11 @@ export interface ReaderExportTriggerResult {
 
 export interface ReaderLatestExportResult {
   exportRecord: ReaderExportSummary | null;
+}
+
+export interface ReaderClipboardExportResult {
+  cursorUpdatedAt: string;
+  exportedCount: number;
+  previousCursorAt: string | null;
+  text: string;
 }

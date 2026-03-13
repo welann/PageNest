@@ -18,6 +18,7 @@ interface BookRow {
   coverStorageKey: string | null;
   createdAt: string;
   lastExportedAt: string | null;
+  lastClipboardExportedAt: string | null;
   locator: string | null;
   progressPercent: number | null;
   progressUpdatedAt: string | null;
@@ -133,6 +134,7 @@ function mapBookRow(row: BookRow): ReaderBookSummary {
     coverStorageKey: row.coverStorageKey,
     createdAt: row.createdAt,
     lastExportedAt: row.lastExportedAt,
+    lastClipboardExportedAt: row.lastClipboardExportedAt,
     progress
   };
 }
@@ -231,6 +233,7 @@ export async function buildReaderBootstrap(env: Env): Promise<ReaderBootstrap> {
           items.cover_storage_key AS coverStorageKey,
           items.created_at AS createdAt,
           items.last_exported_at AS lastExportedAt,
+          items.last_clipboard_exported_at AS lastClipboardExportedAt,
           progress.locator AS locator,
           progress.progress_percent AS progressPercent,
           progress.updated_at AS progressUpdatedAt
@@ -332,6 +335,7 @@ export async function getBookById(db: D1Database, bookId: number) {
           items.cover_storage_key AS coverStorageKey,
           items.created_at AS createdAt,
           items.last_exported_at AS lastExportedAt,
+          items.last_clipboard_exported_at AS lastClipboardExportedAt,
           progress.locator AS locator,
           progress.progress_percent AS progressPercent,
           progress.updated_at AS progressUpdatedAt
@@ -370,9 +374,10 @@ export async function insertBookRecord(
           storage_key,
           cover_storage_key,
           last_exported_at,
+          last_clipboard_exported_at,
           created_at
         )
-        VALUES (?, ?, ?, ?, ?, ?, NULL, ?)
+        VALUES (?, ?, ?, ?, ?, ?, NULL, NULL, ?)
       `
     )
     .bind(
@@ -399,6 +404,7 @@ export async function insertBookRecord(
           items.cover_storage_key AS coverStorageKey,
           items.created_at AS createdAt,
           items.last_exported_at AS lastExportedAt,
+          items.last_clipboard_exported_at AS lastClipboardExportedAt,
           progress.locator AS locator,
           progress.progress_percent AS progressPercent,
           progress.updated_at AS progressUpdatedAt
@@ -914,6 +920,25 @@ export async function completeExportRecord(
   }
 
   return mapExportRow(row);
+}
+
+export async function updateClipboardExportCursor(
+  db: D1Database,
+  itemId: number,
+  cursorUpdatedAt: string
+) {
+  await db
+    .prepare(
+      `
+        UPDATE reader_library_items
+        SET last_clipboard_exported_at = ?
+        WHERE id = ?
+      `
+    )
+    .bind(cursorUpdatedAt, itemId)
+    .run();
+
+  return cursorUpdatedAt;
 }
 
 export async function getLatestExportRecord(db: D1Database, itemId: number) {

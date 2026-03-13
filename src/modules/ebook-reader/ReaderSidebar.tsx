@@ -1,5 +1,6 @@
 import {
   BookOpenText,
+  Copy,
   Database,
   Download,
   HardDriveUpload,
@@ -17,6 +18,8 @@ interface ReaderSidebarPanelProps {
   currentBookTitle: string;
   currentProgressPercent: number;
   dictionaryFileName: string;
+  clipboardExportDisabled: boolean;
+  clipboardExportLabel: string;
   exportDisabled: boolean;
   exportUrl: string | null;
   latestExportLabel: string;
@@ -28,6 +31,7 @@ interface ReaderSidebarPanelProps {
     | "dictionary"
     | "learned"
     | "export"
+    | "copy-export"
     | "mark-learned"
     | "mark-page-learned"
     | "save-unknown"
@@ -40,6 +44,7 @@ interface ReaderSidebarPanelProps {
   sourceReady: boolean;
   visibleUnknownCount: number;
   onExportCsv: () => void;
+  onCopyUnknownWords: () => void;
   onImportBook: () => void;
   onImportDictionary: () => void;
   onImportLearned: () => void;
@@ -69,6 +74,8 @@ export function ReaderSidebarPanel({
   currentBookTitle,
   currentProgressPercent,
   dictionaryFileName,
+  clipboardExportDisabled,
+  clipboardExportLabel,
   exportDisabled,
   exportUrl,
   latestExportLabel,
@@ -84,6 +91,7 @@ export function ReaderSidebarPanel({
   sourceReady,
   visibleUnknownCount,
   onExportCsv,
+  onCopyUnknownWords,
   onImportBook,
   onImportDictionary,
   onImportLearned,
@@ -155,6 +163,16 @@ export function ReaderSidebarPanel({
                 : "生成 CSV"}
           </Button>
 
+          <Button
+            className="h-10 justify-start rounded-[0.95rem] border-[#d7dceb] bg-[#f7f9fc] text-[#243244] hover:bg-[#eef3f8]"
+            disabled={clipboardExportDisabled}
+            onClick={onCopyUnknownWords}
+            variant="outline"
+          >
+            <Copy className="size-4" />
+            {pendingAction === "copy-export" ? "复制中..." : "复制新增单词"}
+          </Button>
+
           <div className="grid grid-cols-2 gap-2">
             <Button
               className="justify-start rounded-[0.95rem] border-[#e7dfd2] bg-[#fcfaf6] hover:bg-[#f6f1e9]"
@@ -187,6 +205,10 @@ export function ReaderSidebarPanel({
           <div className="flex items-center justify-between gap-3">
             <span>Latest export</span>
             <span className="font-medium text-[#374151]">{latestExportLabel}</span>
+          </div>
+          <div className="mt-1 flex items-center justify-between gap-3">
+            <span>Clipboard cursor</span>
+            <span className="font-medium text-[#374151]">{clipboardExportLabel}</span>
           </div>
           {exportUrl ? (
             <div className="mt-2 flex justify-end">
